@@ -6,6 +6,7 @@ import { segmentHitsRect } from '../utils/math';
 import { TileRegistry, LIQUID } from '../world/TileRegistry';
 import { breakTile } from '../world/WorldActions';
 import { placeItemAt } from '../systems/BuildingSystem';
+import { buildNpcHouse } from '../world/prefabs';
 import { PLAYER_TUNING } from '../core/config';
 
 const SWING_START = -2.3;
@@ -194,6 +195,21 @@ export class ItemUse {
       }
       if (!p.cheats.infinite) p.inventory.main.remove(def.id, 1);
       this.begin(p, def, useTime, 'hold');
+      return;
+    }
+    if (def.utility === 'house') {
+      if (!p.input.usePressed) return;
+      // Build on the first solid ground at or below the cursor.
+      let fy = ty;
+      for (let k = 0; k < 30 && !ctx.world.isSolid(tx, fy); k++) fy++;
+      const err = buildNpcHouse(ctx, tx, fy);
+      if (err) ctx.message(err, '#ffb070');
+      else {
+        ctx.message('House built! A townsperson whose conditions are met will move in during the day.', '#a0ffa0');
+        ctx.audio.play('craft');
+        ctx.particles.emit(tx * 16 + 8, (fy - 4) * 16, { count: 40, colors: ['#a4713f', '#f5cf3c', '#ffffff'], speed: [1, 4], glow: true, jitter: 60 });
+      }
+      this.begin(p, def, def.useTime ?? 30, 'hold');
       return;
     }
     if (def.utility === 'guide') {

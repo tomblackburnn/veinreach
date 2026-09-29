@@ -219,7 +219,7 @@ To try everything without progressing, create a character with the **Creative** 
 - **Player:**
   - Cheats: god mode, fly (through terrain), instant mining (ignores tool power) and infinite items (free placing, ammo, mana and potions).
   - Gear presets that equip a full armour set, accessories, tools and weapons for four stages of the game.
-  - Max life and mana, aurels, and set spawn.
+  - Max life and mana, aurels, set spawn, and a **Housing Deed**: use it on the ground to build a complete, valid townsperson house at the cursor.
 
 A Creative character has no death penalty.
 

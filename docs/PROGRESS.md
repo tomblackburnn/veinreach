@@ -7,7 +7,7 @@ _Last updated: 2026-09-29_
 | Check | Status |
 |---|---|
 | `npm run typecheck` (client + server) | ✅ passing |
-| `npm run test` | ✅ 66 tests passing (unit + headless simulation) |
+| `npm run test` | ✅ 67 tests passing (unit + headless simulation) |
 | `npm run build` | ✅ passing (~440 kB JS, ~140 kB gzipped) |
 | Browser runtime | ✅ Verified manually in Chromium: menus, character/world creation, generation, mining, placing, crafting, chests, persistence across reload, all five bosses rendered and fighting. No console errors. |
 
@@ -67,6 +67,7 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Housing Deed** (creative item): builds a complete, valid NPC house at the cursor. It refuses to overwrite furniture or chests. Items marked `cheat` are excluded from the obtainability audit.
 - **Delver's Almanac**: an in-game guidebook (G) with a live boss checklist, current objective, per-stage loadouts, armour sets, ores and tools, stations, townsfolk and events. Its content is validated by tests.
 - Fixed: the boss health bar now disappears after a boss is defeated or leaves.
 - **Obtainability audit** (`scripts/audit-items.ts` and a test): all 250 items are reachable. Leafthatch now drops from felled leafy trees.

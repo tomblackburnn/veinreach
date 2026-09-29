@@ -5,6 +5,7 @@ import { checkRoom } from '../src/world/housing';
 import { TileRegistry } from '../src/world/TileRegistry';
 import { placeObjectRaw } from '../src/world/objects';
 import type { World } from '../src/world/World';
+import { buildNpcHouse } from '../src/world/prefabs';
 
 /** Build a 10×6 interior house with its floor at row `floor` (the solid row). */
 function buildHouse(w: World, x0: number, floor: number, opts: { door?: boolean; light?: boolean; wall?: boolean } = {}): { cx: number; cy: number } {
@@ -71,5 +72,38 @@ describe('housing & NPCs', () => {
     // Serialisation
     const saved = ctx.npcs.serialize();
     expect(saved.length).toBe(ctx.entities.npcs.length);
+  });
+
+  it('the Housing Deed builds a valid house that townsfolk move into', () => {
+    const g2 = generateWorldSync({ name: 'deed', seed: 'deed-town', width: 500, height: 280 });
+    const w2 = g2.world;
+    const ctx = new SimContext(w2);
+    const px = g2.spawnX + 30;
+    let fy = 0;
+    while (!w2.isSolid(px, fy)) fy++;
+    ctx.player.teleportTo(ctx, g2.spawnX, g2.spawnY);
+    ctx.time.setHour(10);
+    ctx.time.speed = 0;
+    // Through the real item-use path.
+    ctx.player.inventory.main.set(0, { id: 'housing_deed', count: 1 });
+    ctx.player.inventory.selected = 0;
+    ctx.player.teleportTo(ctx, px - 3, fy - 1);
+    ctx.step(5);
+    ctx.nextInput = { use: true, usePressed: true, aimX: px * 16 + 8, aimY: (fy - 1) * 16 };
+    ctx.step(1);
+    ctx.nextInput = {};
+    expect(ctx.messages.some((m) => m.startsWith('House built!'))).toBe(true);
+    expect(ctx.player.inventory.count('housing_deed')).toBe(1); // reusable
+    expect(checkRoom(w2, px - 3, fy - 1).valid).toBe(true);
+    ctx.player.inventory.wallet = 100;
+    ctx.step(600);
+    expect(ctx.entities.npcs.map((n) => n.def.id)).toContain('pedlar');
+    // Refuses to overwrite a chest.
+    const cx = px + 40;
+    let cy = 0;
+    while (!w2.isSolid(cx, cy)) cy++;
+    placeObjectRaw(w2, cx, cy - 2, TileRegistry.id('chest'));
+    expect(buildNpcHouse(ctx, cx, cy)).toMatch(/Chest/);
+    expect(w2.getFg(cx, cy - 2)).toBe(TileRegistry.id('chest'));
   });
 });

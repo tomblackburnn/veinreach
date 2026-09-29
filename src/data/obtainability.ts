@@ -80,5 +80,5 @@ export function obtainableItems(src: ObtainSources): { obtainable: Set<string>; 
 
 export function unobtainableItems(src: ObtainSources): string[] {
   const { obtainable } = obtainableItems(src);
-  return ItemRegistry.all().map((i) => i.id).filter((id) => !obtainable.has(id));
+  return ItemRegistry.all().filter((i) => !i.cheat).map((i) => i.id).filter((id) => !obtainable.has(id));
 }

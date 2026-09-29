@@ -40,6 +40,10 @@ export const TOOL_ITEMS: ItemDef[] = [
     category: 'utility', rarity: 1, maxStack: 1, value: 5, icon: { t: 'tome', c: ['#d9a441', '#5a3a1e'] }, useTime: 20, useStyle: 'hold', utility: 'guide',
   },
   {
+    id: 'housing_deed', name: 'Housing Deed', description: 'Creative item. Use it on the ground to build a complete, valid townsperson house centred on the cursor. Reusable.',
+    category: 'utility', rarity: 7, maxStack: 1, value: 0, icon: { t: 'tome', c: ['#6ad04a', '#a4713f'] }, useTime: 30, useStyle: 'hold', utility: 'house', cheat: true,
+  },
+  {
     id: 'bucket', name: 'Empty Bucket', description: 'Scoop up water or magma.', category: 'utility', rarity: 0, maxStack: 1, value: 20,
     icon: { t: 'bucket', c: ['#a7b3c2'] }, useTime: 15, useStyle: 'hold', liquid: { action: 'collect' },
   },

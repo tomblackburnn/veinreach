@@ -147,6 +147,8 @@ export interface ItemDef {
   liquid?: { action: 'collect' } | { action: 'pour'; type: number };
   /** Custom utility handler id (e.g. 'recall'). */
   utility?: string;
+  /** Creative/testing item: excluded from the obtainability audit, shown in the Creative panel. */
+  cheat?: boolean;
 }
 
 export const RARITY_COLORS = [

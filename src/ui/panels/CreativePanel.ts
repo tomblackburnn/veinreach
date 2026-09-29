@@ -16,6 +16,7 @@ type Tab = 'items' | 'spawn' | 'world' | 'player';
 
 const CATEGORY_GROUPS: { label: string; cats: ItemCategory[] | null }[] = [
   { label: 'All', cats: null },
+  { label: 'Creative items', cats: [] },
   { label: 'Blocks', cats: ['block', 'wall'] },
   { label: 'Furniture', cats: ['furniture'] },
   { label: 'Tools', cats: ['tool', 'utility'] },
@@ -146,7 +147,9 @@ export class CreativePanel {
       clear(grid);
       const q = this.search.toLowerCase();
       const cats = CATEGORY_GROUPS[this.group].cats;
-      const items = ItemRegistry.all().filter((d) => (!cats || cats.includes(d.category)) && (!q || d.name.toLowerCase().includes(q) || d.id.includes(q)));
+      const items = ItemRegistry.all()
+        .filter((d) => (!cats || (cats.length ? cats.includes(d.category) : d.cheat)) && (!q || d.name.toLowerCase().includes(q) || d.id.includes(q)))
+        .sort((a, b) => Number(!!b.cheat) - Number(!!a.cheat));
       for (const d of items) {
         const v = new SlotView();
         v.set({ id: d.id, count: 1 });
@@ -310,6 +313,7 @@ export class CreativePanel {
         h('button', { class: 'btn small', onclick: () => { p.baseLife = 400; p.baseMana = 200; p.refreshStats(); p.life = p.maxLife; p.mana = p.maxMana; } }, 'Max life & mana'),
         h('button', { class: 'btn small', onclick: () => { p.spawnX = p.tileX; p.spawnY = Math.floor((p.bottom - 1) / 16); s.message('Spawn point set here.', '#a0ffa0'); } }, 'Set spawn here'),
         h('button', { class: 'btn small', onclick: () => { p.inventory.wallet += 10000; } }, '+10,000 aurels'),
+        h('button', { class: 'btn small good', onclick: () => { p.inventory.give({ id: 'housing_deed', count: 1 }); s.message('Housing Deed added: use it on the ground to build an NPC house.', '#a0ffa0'); } }, 'Get Housing Deed'),
         h('button', { class: 'btn small danger', onclick: () => { for (let i = 10; i < 50; i++) p.inventory.main.set(i, null); } }, 'Clear backpack'),
       ),
     );
