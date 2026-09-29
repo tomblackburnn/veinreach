@@ -17,13 +17,15 @@ export class SpawnSystem {
   private timer = 0;
   enabled = true;
   rateMul = 1;
+  /** Multiplier on the spawn cap (creative "High" spawns). */
+  capMul = 1;
 
   cap(ctx: GameContext, zone: string): number {
     let cap = zone === 'surface' ? (ctx.time.isNight ? 7 : 4) : zone === 'sky' ? 3 : 8;
     if (ctx.worldEvents.active) cap = ctx.worldEvents.active.id === 'raid' ? 14 : 12;
     if (ctx.weather.kind === 'storm' || ctx.weather.kind === 'veilstorm') cap += 2;
     if (ctx.bosses.active.length) cap = Math.floor(cap / 2);
-    return cap;
+    return Math.round(cap * this.capMul);
   }
 
   update(ctx: GameContext): void {

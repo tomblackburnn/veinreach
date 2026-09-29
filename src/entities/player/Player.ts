@@ -4,7 +4,8 @@ import { PlayerInventory } from '../../inventory/PlayerInventory';
 import { computeStats, type ComputedStats } from './PlayerStats';
 import { type Appearance, type Difficulty, defaultAppearance } from './Appearance';
 import { PHYSICS, PLAYER_TUNING as PT, TILE_SIZE } from '../../core/config';
-import { moveBody, liquidAt, tileContact, unstick } from '../../physics/Physics';
+import { moveBody, liquidAt, tileContact, unstick, rectHitsSolid } from '../../physics/Physics';
+import { findStandSpot } from '../../world/locate';
 import { approach, clamp } from '../../utils/math';
 import { fallDamage, applyReduction } from '../../combat/damage';
 import { ItemUse } from '../../combat/ItemUse';
@@ -47,6 +48,8 @@ export class Player extends Actor {
   stats: ComputedStats = { ...emptyStats(), setBonus: null };
   input: PlayerInput = emptyInput();
   readonly use = new ItemUse();
+  /** Creative-mode toggles (see ui/panels/CreativePanel). */
+  readonly cheats = { god: false, fly: false, instantMine: false, infinite: false };
 
   // Movement state
   private jumpHold = 0;
@@ -64,6 +67,7 @@ export class Player extends Actor {
   private stepTimer = 0;
   private liquid = 0;
   private lavaTimer = 0;
+  private wasFlying = false;
 
   // Regen & timers
   sinceHurt = 600;
@@ -161,6 +165,7 @@ export class Player extends Actor {
   }
 
   spendMana(n: number): boolean {
+    if (this.cheats.infinite) return true;
     if (this.mana < n) return false;
     this.mana -= n;
     this.manaDelay = 50;
@@ -198,6 +203,26 @@ export class Player extends Actor {
         ctx.particles.emit(this.cx, this.cy, { count: 12, colors: ['#ffffff', '#c0d0ff'], speed: [0.5, 2], angle: d > 0 ? Math.PI : 0, spread: 0.5, life: [10, 25], gravity: 0 });
       }
       this.lastTap = { dir: d, tick: ctx.tick };
+    }
+
+    // Creative flight: free movement through terrain.
+    if (this.wasFlying && !this.cheats.fly && rectHitsSolid(ctx.world, this.x, this.y, this.w, this.h)) {
+      const spot = findStandSpot(ctx.world, this.tileX, this.tileY, 40);
+      if (spot) this.teleportTo(ctx, spot[0], spot[1]);
+    }
+    this.wasFlying = this.cheats.fly;
+    if (this.cheats.fly) {
+      const sp = inp.jump || inp.up ? -1 : inp.down ? 1 : 0;
+      const fast = 1.8;
+      this.vx = approach(this.vx, dir * maxSpeed * 2.4 * fast, 0.8);
+      this.vy = approach(this.vy, sp * maxSpeed * 2.4 * fast, 0.8);
+      if (dir) this.facing = dir > 0 ? 1 : -1;
+      moveBody(ctx.world, this, { platforms: false, noClip: true });
+      this.x = clamp(this.x, 0, ctx.world.width * 16 - this.w);
+      this.y = clamp(this.y, 0, ctx.world.height * 16 - this.h);
+      this.fallStartY = this.y;
+      this.climbing = false;
+      return;
     }
 
     // Climbing ropes.
@@ -301,7 +326,7 @@ export class Player extends Actor {
         ctx.audio.play('step', { volume: 0.6 });
       }
     }
-    unstick(ctx.world, this);
+    if (!this.cheats.fly) unstick(ctx.world, this);
   }
 
   private environment(ctx: GameContext): void {
@@ -345,6 +370,7 @@ export class Player extends Actor {
   }
 
   override hurt(ctx: GameContext, h: HitInfo): number {
+    if (this.cheats.god) return 0;
     if (h.immunity === undefined) h.immunity = PT.invulnTicks;
     return super.hurt(ctx, h);
   }
@@ -387,7 +413,7 @@ export class Player extends Actor {
       }
       if (this.inventory.wallet > 0) ctx.dropItem({ id: 'aurel', count: this.inventory.wallet }, this.cx, this.cy, 0, -2, 180);
       this.inventory.wallet = 0;
-    } else {
+    } else if (this.difficulty === 'ironsoul') {
       this.permadead = true;
     }
     const cause = h.source && 'name' in h.source ? String((h.source as { name: string }).name) : h.kind === 'environment' ? 'the world' : 'misfortune';
@@ -463,6 +489,5 @@ export class Player extends Actor {
       alpha: this.immune > 0 && !this.dead && this.immune % 8 < 4 ? 0.55 : 1,
     });
     void ctx;
-    void clamp;
   }
 }

@@ -36,17 +36,18 @@ export class MiningSystem {
     return 'pick';
   }
 
-  hitTile(ctx: GameContext, x: number, y: number, power: number, kind: 'pick' | 'axe', speed: number): MineResult {
+  /** `force` (creative instant-mine) skips tool-power and progression locks. */
+  hitTile(ctx: GameContext, x: number, y: number, power: number, kind: 'pick' | 'axe', speed: number, force = false): MineResult {
     const w = ctx.world;
     const id = w.getFg(x, y);
     const need = MiningSystem.toolFor(id);
-    if (!need || (need !== 'any' && need !== kind)) return 'none';
+    if (!need || (need !== 'any' && need !== kind && !force)) return 'none';
     const def = TileRegistry.get(id);
-    if (def.lockedUntil && !ctx.progression.has(def.lockedUntil)) {
+    if (def.lockedUntil && !ctx.progression.has(def.lockedUntil) && !force) {
       this.notify(ctx, 'A strange force binds this ore. It cannot be mined yet.');
       return 'locked';
     }
-    if (power < def.toolPower) {
+    if (power < def.toolPower && !force) {
       this.notify(ctx, `Needs ${kind === 'axe' ? 'an axe' : 'a pickaxe'} of power ${def.toolPower}+ (yours: ${power}).`);
       ctx.audio.play('metal', { x: x * 16, y: y * 16, volume: 0.5, pitch: 1.6 });
       return 'weak';
@@ -54,7 +55,8 @@ export class MiningSystem {
     const hp = 100 * def.hardness;
     const k = this.key(x, y);
     const d = this.fg.get(k) ?? { amount: 0, ticks: 0 };
-    d.amount += power * (1 + speed) * (kind === 'axe' ? 1.1 : 1);
+    // ×1.6 so a starter pickaxe breaks soil in one hit and stone in two.
+    d.amount += power * (1 + speed) * 1.6;
     d.ticks = 0;
     if (d.amount >= hp || hp === 0) {
       this.fg.delete(k);

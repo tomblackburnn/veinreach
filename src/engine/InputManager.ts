@@ -16,7 +16,8 @@ export type Action =
   | 'debug'
   | 'drop'
   | 'zoomIn'
-  | 'zoomOut';
+  | 'zoomOut'
+  | 'creative';
 
 export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   left: ['KeyA', 'ArrowLeft'],
@@ -36,6 +37,7 @@ export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   drop: ['KeyQ'],
   zoomIn: ['Equal', 'NumpadAdd'],
   zoomOut: ['Minus', 'NumpadSubtract'],
+  creative: ['KeyC'],
 };
 
 export const ACTION_LABELS: Record<Action, string> = {
@@ -56,6 +58,7 @@ export const ACTION_LABELS: Record<Action, string> = {
   drop: 'Drop held item',
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
+  creative: 'Creative panel',
 };
 
 export class InputManager {

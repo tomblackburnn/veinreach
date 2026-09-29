@@ -140,8 +140,8 @@ export class DebugConsole {
         s.time.speed = Math.max(0, parseFloat(args[0]) || 1);
         break;
       case 'god':
-        s.god = !s.god;
-        this.print(`God mode ${s.god ? 'on' : 'off'}`);
+        p.cheats.god = !p.cheats.god;
+        this.print(`God mode ${p.cheats.god ? 'on' : 'off'}`);
         break;
       case 'heal':
         p.life = p.maxLife;

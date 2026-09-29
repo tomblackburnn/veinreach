@@ -43,6 +43,7 @@ import { NPCPanel } from '../ui/panels/NPCPanel';
 import { PauseMenu } from '../ui/panels/PauseMenu';
 import { Minimap } from '../ui/Minimap';
 import { DebugConsole } from '../ui/DebugConsole';
+import { CreativePanel } from '../ui/panels/CreativePanel';
 import { renderHazards } from '../entities/bosses/hazards';
 import { ObjectSprites } from '../rendering/sprites/objectSprites';
 import { TileTextures } from '../rendering/sprites/tileTextures';
@@ -92,6 +93,7 @@ export class GameSession implements GameContext {
   readonly pause: PauseMenu;
   readonly minimap: Minimap;
   readonly debug: DebugConsole;
+  readonly creative: CreativePanel;
   readonly net: NetworkManager | null;
   readonly ui: UIHooks;
   tick = 0;
@@ -106,7 +108,6 @@ export class GameSession implements GameContext {
   private unsubscribers: (() => void)[] = [];
   showChunks = false;
   showHitboxes = false;
-  god = false;
 
   get audio() {
     return this.host.audio;
@@ -167,6 +168,7 @@ export class GameSession implements GameContext {
     this.pause = new PauseMenu(this);
     this.minimap = new Minimap(this);
     this.debug = new DebugConsole(this);
+    this.creative = new CreativePanel(this);
     this.ui = {
       openChest: (c: ChestData) => self.inventory.openChest(c),
       openNPC: (n: NPC) => self.npcPanel.open(n),
@@ -288,7 +290,7 @@ export class GameSession implements GameContext {
 
     if (this.tick % 30 === 0) this.updateBiomeAndMusic();
     if (this.tick % 60 === 0) this.discoverStructures();
-    if (this.god) {
+    if (this.player.cheats.god) {
       this.player.life = this.player.maxLife;
       this.player.mana = this.player.maxMana;
     }
@@ -300,6 +302,7 @@ export class GameSession implements GameContext {
     this.net?.update(this);
     this.inventory.update();
     this.npcPanel.update();
+    this.creative.update();
     this.hud.update();
     this.minimap.update();
     inp.endTick();
@@ -310,6 +313,7 @@ export class GameSession implements GameContext {
     if (this.debug.open) return;
     if (inp.wasPressed('pause')) {
       if (this.hud.mapOpen) this.hud.toggleMap(false);
+      else if (this.creative.isOpen) this.creative.close();
       else if (this.npcPanel.isOpen) this.npcPanel.close();
       else if (this.inventory.isOpen) this.inventory.close();
       else this.pause.toggle();
@@ -321,6 +325,7 @@ export class GameSession implements GameContext {
     }
     if (inp.wasPressed('map')) this.hud.toggleMap();
     if (inp.wasPressed('debug') && this.settings.developerMode) this.debug.toggle();
+    if (inp.wasPressed('creative')) this.creative.toggle();
     if (inp.wasPressed('zoomIn')) this.camera.targetZoom = Math.min(4, this.camera.targetZoom + 0.25);
     if (inp.wasPressed('zoomOut')) this.camera.targetZoom = Math.max(1, this.camera.targetZoom - 0.25);
     const hb = inp.hotbarPressed();
@@ -530,6 +535,7 @@ export class GameSession implements GameContext {
     this.npcPanel.dispose();
     this.pause.dispose();
     this.debug.dispose();
+    this.creative.dispose();
   }
 
   // ---------------- Rendering ----------------

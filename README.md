@@ -86,6 +86,7 @@ Dev convenience: open `http://localhost:5173/?autoplay` to resume the most recen
 | H / J | Quick heal / quick mana |
 | Q | Drop held item (Shift+Q drops the stack) |
 | + / − | Zoom |
+| C | Creative panel (Creative characters, or with Developer mode on) |
 | Esc | Pause menu, or close panels |
 | Enter | Chat (multiplayer) |
 | \` | Debug console (Developer mode only) |
@@ -197,6 +198,27 @@ Add a `BossDef` to `src/data/bosses.ts`, subclass `Boss` in `src/entities/bosses
 
 ### Adding music or sound files
 Everything is synthesised by default. To use real files, drop them in `public/assets/audio/` and list them in `public/assets/audio/manifest.json`, for example `{ "sfx": { "hit": "sfx/hit.ogg" }, "music": { "day": "music/day.ogg" } }`. Files override the procedural sound with the same name.
+
+## Creative mode (testing sandbox)
+
+To try everything without progressing, create a character with the **Creative** difficulty, or turn on **Settings → Developer mode** for any character, then press **C** in game. The Creative panel has four tabs:
+
+- **Items:** every item in the game, searchable and filtered by category. Click to get a full stack; Shift-click to get one.
+- **Creatures & Bosses:**
+  - Spawn any of the 5 bosses on the spot. Summoning conditions are ignored, and night is set automatically for night bosses.
+  - Spawn any creature (Shift-click spawns 5) and clear enemies.
+  - Set natural spawns to Off, Normal or High.
+- **World:**
+  - Time presets, plus freeze time and fast time.
+  - Weather and world events (Gloamtide, Rustbound Raid, Starfall, Veilstorm); crash a meteor.
+  - Progression flags (each boss defeated, the Unsealing), which unlock recipes, NPCs, shop stock and loot.
+  - Teleports to every biome (surface and underground) and every structure type, and a map reveal.
+- **Player:**
+  - Cheats: god mode, fly (through terrain), instant mining (ignores tool power) and infinite items (free placing, ammo, mana and potions).
+  - Gear presets that equip a full armour set, accessories, tools and weapons for four stages of the game.
+  - Max life and mana, aurels, and set spawn.
+
+A Creative character has no death penalty.
 
 ## Debug tools
 

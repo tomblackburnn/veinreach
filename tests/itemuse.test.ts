@@ -144,4 +144,46 @@ describe('item use', () => {
     expect(world.getFg(tx, ty)).toBe(0);
     expect(p.inventory.main.slots.filter(Boolean).length).toBeGreaterThan(1);
   });
+
+  it('the starter pickaxe digs soil in one hit and stone in two', () => {
+    const ctx = setup('brasslite_pickaxe');
+    const T = { loam: 1, stone: 3 };
+    const x = ctx.player.tileX + 3;
+    const y = ctx.player.tileY - 6;
+    world.setFg(x, y, T.loam, 0);
+    world.setFg(x + 1, y, T.stone, 0);
+    expect(ctx.mining.hitTile(ctx, x, y, 35, 'pick', 0)).toBe('broke');
+    expect(ctx.mining.hitTile(ctx, x + 1, y, 35, 'pick', 0)).toBe('hit');
+    expect(ctx.mining.hitTile(ctx, x + 1, y, 35, 'pick', 0)).toBe('broke');
+  });
+
+  it('creative cheats: god, fly through terrain, instant mining, infinite items', () => {
+    const ctx = setup('brasslite_pickaxe');
+    const p = ctx.player;
+    p.cheats.god = true;
+    expect(p.hurt(ctx, { damage: 9999, knockback: 0, dirX: 1 })).toBe(0);
+    p.cheats.fly = true;
+    const y0 = p.y;
+    for (let i = 0; i < 90; i++) {
+      ctx.nextInput = { down: true };
+      ctx.step(1);
+    }
+    expect(p.y).toBeGreaterThan(y0 + 16 * 8); // passed down through the ground
+    p.cheats.fly = false;
+    ctx.nextInput = {};
+    ctx.step(2);
+    expect(world.isSolid(p.tileX, p.tileY)).toBe(false); // popped out to a safe spot
+    p.cheats.instantMine = true;
+    const tx = p.tileX + 2;
+    const ty = p.tileY;
+    world.setFg(tx, ty, 15, 0); // basaltglass needs power 55; instant mine ignores that
+    useAt(ctx, tx * 16 + 8, ty * 16 + 8, 12);
+    expect(world.getFg(tx, ty)).toBe(0);
+    p.cheats.infinite = true;
+    p.inventory.main.set(1, { id: 'stone', count: 1 });
+    p.inventory.selected = 1;
+    useAt(ctx, tx * 16 + 8, ty * 16 + 8, 14);
+    expect(world.getFg(tx, ty)).toBe(3);
+    expect(p.inventory.count('stone')).toBe(1);
+  });
 });

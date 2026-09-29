@@ -7,7 +7,7 @@ _Last updated: 2026-09-29_
 | Check | Status |
 |---|---|
 | `npm run typecheck` (client + server) | ✅ passing |
-| `npm run test` | ✅ 57 tests passing (unit + headless simulation) |
+| `npm run test` | ✅ 60 tests passing (unit + headless simulation) |
 | `npm run build` | ✅ passing (~440 kB JS, ~140 kB gzipped) |
 | Browser runtime | ✅ Verified manually in Chromium: menus, character/world creation, generation, mining, placing, crafting, chests, persistence across reload, all five bosses rendered and fighting. No console errors. |
 
@@ -67,6 +67,9 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Creative mode:** a Creative difficulty plus a Creative panel (C) with an item browser, boss/creature spawners, time/weather/event/progression controls, teleports, cheats (god, fly, instant mine, infinite items) and gear presets.
+- Tools dig about 2× faster: shorter use times and ×1.6 damage per hit. The starter pickaxe breaks soil in one hit and stone in two.
+- Multiplayer verified end to end with two real browser clients plus a scripted client: join, avatars, block edits both ways, chests, progression flags, chat, late-join catch-up and server autosave.
 - Fixed: the UI Scale setting now scales every menu, HUD and panel (CSS zoom on the UI layer); "Zoom" is relabelled "Game zoom" (it is the in-game camera).
 - Fixed: the main-menu **Worlds** button now opens a world manager; pressing Play there asks which character should play.
 - Fixed: too many Tunnel Grubs underground. Spawning now picks a location first; worms spawn only inside rock, at most one at a time, with a low chance.

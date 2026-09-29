@@ -15,6 +15,7 @@ import { BUFF_MAP } from '../src/data/buffs';
 import { rollDamage, applyReduction, fallDamage, knockbackVelocity } from '../src/combat/damage';
 import { ProgressionSystem } from '../src/systems/ProgressionSystem';
 import { EventBus } from '../src/core/EventBus';
+import { LOADOUTS } from '../src/ui/panels/CreativePanel';
 import type { GameEvents } from '../src/core/context';
 
 describe('content integrity', () => {
@@ -55,6 +56,17 @@ describe('content integrity', () => {
     const craftable = new Set(RecipeRegistry.recipes.map((r) => r.out));
     const lootable = new Set(Object.values(LOOT_TABLES).flatMap((t) => [...(t.always ?? []), ...(t.pools ?? []).flatMap((p) => p.entries)]).map((e) => e.item));
     for (const b of BOSSES) expect(craftable.has(b.summonItem) || lootable.has(b.summonItem), b.summonItem).toBe(true);
+  });
+});
+
+describe('creative loadouts', () => {
+  it('reference only real items and complete armour sets', () => {
+    for (const l of LOADOUTS) {
+      for (const slot of ['head', 'body', 'legs']) expect(ItemRegistry.get(`${l.armor}_${slot}`).armor?.slot, `${l.label} ${slot}`).toBe(slot);
+      for (const [id] of l.items) expect(ItemRegistry.has(id), `${l.label}: ${id}`).toBe(true);
+      for (const id of l.accessories) expect(ItemRegistry.get(id).category, `${l.label}: ${id}`).toBe('accessory');
+      expect(new Set(l.accessories).size).toBe(l.accessories.length);
+    }
   });
 });
 

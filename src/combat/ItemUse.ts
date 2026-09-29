@@ -91,7 +91,7 @@ export class ItemUse {
     if (def.placeTile || def.placeWall) {
       if (!inReach(p, tx, ty)) return;
       if (placeItemAt(ctx, def, tx, ty)) {
-        p.inventory.main.remove(def.id, 1) || p.inventory.consume(def.id, 1);
+        if (!p.cheats.infinite) p.inventory.main.remove(def.id, 1) || p.inventory.consume(def.id, 1);
         this.begin(p, def, useTime, 'swing');
       }
       return;
@@ -100,7 +100,7 @@ export class ItemUse {
     // --- Tools (mining also swings) ---
     if (def.tool) {
       const speed = st.miningSpeed;
-      this.begin(p, def, useTime / (1 + speed * 0.6), 'swing');
+      this.begin(p, def, p.cheats.instantMine ? 5 : useTime / (1 + speed * 0.6), 'swing');
       this.useTool(p, ctx, def, tx, ty);
       ctx.audio.play('swing', { volume: 0.4 });
       return;
@@ -143,7 +143,7 @@ export class ItemUse {
           pid = w.projectile ?? ad.projectile;
           dmg += ad.damage * (1 + dmgBonus);
           speed += ad.speedBonus ?? 0;
-          p.inventory.consume(ammoId, 1);
+          if (!p.cheats.infinite) p.inventory.consume(ammoId, 1);
         }
         this.begin(p, def, useTime, 'aim');
         this.shoot(p, ctx, pid!, dmg, w.knockback, crit, speed, a, w.shots ?? 1, w.spread ?? 0.04, 'ranged', w.onHit);
@@ -182,7 +182,7 @@ export class ItemUse {
         if (p.input.usePressed) ctx.message(err, '#ffb070');
         return;
       }
-      p.inventory.main.remove(def.id, 1);
+      if (!p.cheats.infinite) p.inventory.main.remove(def.id, 1);
       this.begin(p, def, useTime, 'hold');
       return;
     }
@@ -192,7 +192,7 @@ export class ItemUse {
         if (p.input.usePressed) ctx.message(err, '#ffb070');
         return;
       }
-      p.inventory.main.remove(def.id, 1);
+      if (!p.cheats.infinite) p.inventory.main.remove(def.id, 1);
       this.begin(p, def, useTime, 'hold');
       return;
     }
@@ -212,11 +212,12 @@ export class ItemUse {
     const t = def.tool!;
     if (!inReach(p, tx, ty, t.range ?? 0)) return;
     const fg = ctx.world.getFg(tx, ty);
-    const speed = p.stats.miningSpeed;
+    const force = p.cheats.instantMine;
+    const speed = force ? 1000 : p.stats.miningSpeed;
     if (fg !== 0) {
       const need = TileRegistry.get(fg).tool;
-      if (need === 'axe' && t.axe) ctx.mining.hitTile(ctx, tx, ty, t.axe, 'axe', speed);
-      else if ((need === 'pickaxe' || need === 'any') && t.pick) ctx.mining.hitTile(ctx, tx, ty, t.pick, 'pick', speed);
+      if (need === 'axe' && (t.axe || force)) ctx.mining.hitTile(ctx, tx, ty, t.axe ?? 100, 'axe', speed, force);
+      else if ((need === 'pickaxe' || need === 'any') && (t.pick || force)) ctx.mining.hitTile(ctx, tx, ty, t.pick ?? 100, 'pick', speed, force);
       else if (TileRegistry.cuttable[fg]) breakTile(ctx, tx, ty);
       else if (t.hammer) ctx.mining.hitWall(ctx, tx, ty, t.hammer, speed);
     } else if (t.hammer) {
@@ -342,7 +343,7 @@ export function useConsumable(p: Player, ctx: GameContext, def: ItemDef): boolea
     ctx.message('Your mind can hold no more mana.', '#ffb070');
     return false;
   }
-  if (!p.inventory.consume(def.id, 1)) return false;
+  if (!p.cheats.infinite && !p.inventory.consume(def.id, 1)) return false;
   if (c.maxLifeUp) {
     p.baseLife += c.maxLifeUp;
     p.refreshStats();

@@ -213,3 +213,10 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .npc-panel { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); pointer-events: auto; max-width: 560px; }
 .label-sm { font-family: var(--font-head); font-size: 10px; color: var(--muted); margin: 4px 0; }
 .trash-slot { background: #2a1414 !important; }
+
+/* ---------- Creative panel ---------- */
+.creative-panel { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); width: min(640px, calc(96vw / var(--ui-scale))); max-height: calc(100vh / var(--ui-scale) - 90px); display: flex; flex-direction: column; gap: 8px; pointer-events: auto; }
+.creative-panel * { pointer-events: auto; }
+.creative-body { overflow-y: auto; padding-right: 6px; min-height: 0; }
+.creative-body h3 { margin: 6px 0 2px; }
+.creative-grid { max-height: calc(100vh / var(--ui-scale) - 330px); overflow-y: auto; }

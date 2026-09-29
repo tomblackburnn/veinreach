@@ -1,9 +1,10 @@
-export type Difficulty = 'wanderer' | 'delver' | 'ironsoul';
+export type Difficulty = 'wanderer' | 'delver' | 'ironsoul' | 'creative';
 
 export const DIFFICULTIES: Record<Difficulty, { name: string; description: string }> = {
   wanderer: { name: 'Wanderer', description: 'Drop half your aurels on death.' },
   delver: { name: 'Delver', description: 'Drop all carried items on death.' },
   ironsoul: { name: 'Ironsoul', description: 'Death is permanent.' },
+  creative: { name: 'Creative', description: 'Sandbox for testing: press C for items, spawners and world controls. No death penalty.' },
 };
 
 export interface Appearance {
