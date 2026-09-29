@@ -15,7 +15,7 @@ import { multiplayerScreen } from '../ui/menus/MultiplayerScreen';
 import { buildSettingsPanel } from '../ui/menus/SettingsScreen';
 import { h } from '../utils/dom';
 import { generateWorld, runSliced } from '../generation/WorldGenerator';
-import { WORLD_SIZES } from './config';
+import { WORLD_SIZES, GEN_VERSION } from './config';
 import { applyChunkRecord, applyExplored, decodeChunkRecord } from '../save/serialization';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { TimeSystem } from '../systems/TimeSystem';
@@ -174,6 +174,9 @@ export class Game implements MenuHost {
       this.ui.clearAll();
       this.session = new GameSession({ host: this, world, record, character: c });
       if (isNew) void this.session.save('new');
+      else if ((record.meta.genVersion ?? 1) !== GEN_VERSION) {
+        this.session.message('This world was created by an older world generator; untouched areas may look different.', '#ffb070');
+      }
     } catch (err) {
       console.error('[Game] failed to start world', err);
       await this.ui.alert('Could not load world', `Something went wrong: ${(err as Error).message}. The save may be corrupt.`);

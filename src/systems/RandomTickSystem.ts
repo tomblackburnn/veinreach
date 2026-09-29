@@ -65,7 +65,7 @@ export class RandomTickSystem {
     const kind =
       ground === T.sand ? TREE_KIND.palm : ground === T.snow ? TREE_KIND.pine : ground === T.lumenmoss ? TREE_KIND.mushroom : ground === T.blightgrass ? TREE_KIND.dead : ground === T.shardgrass ? TREE_KIND.shard : TREE_KIND.oak;
     w.setFg(x, y, 0, 0);
-    const h = kind === TREE_KIND.mushroom ? 5 + Math.floor(Math.random() * 4) : 7 + Math.floor(Math.random() * 7);
+    const h = kind === TREE_KIND.mushroom ? 5 + Math.floor(Math.random() * 4) : 6 + Math.floor(Math.random() * 5);
     if (!growTree(w, x, y + 1, kind, h)) w.setFg(x, y, T.sapling, 0);
   }
 }

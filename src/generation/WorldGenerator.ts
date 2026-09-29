@@ -82,6 +82,16 @@ export function generateWorldSync(opts: GenOptions): GeneratedWorld {
   }
 }
 
+/** Yield to the event loop without setTimeout's 4 ms clamp / background-tab throttling. */
+function nextTask(): Promise<void> {
+  if (typeof MessageChannel === 'undefined') return new Promise((r) => setTimeout(r, 0));
+  return new Promise((resolve) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = () => resolve();
+    ch.port2.postMessage(0);
+  });
+}
+
 /** Run a generator in time slices, reporting progress. */
 export function runSliced<T>(gen: Generator<GenProgress, T>, onProgress: (p: GenProgress) => void, budgetMs = 14): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -99,11 +109,11 @@ export function runSliced<T>(gen: Generator<GenProgress, T>, onProgress: (p: Gen
           last = r.value;
         }
         if (last) onProgress(last);
-        setTimeout(step, 0);
+        void nextTask().then(step);
       } catch (err) {
         reject(err);
       }
     };
-    setTimeout(step, 0);
+    void nextTask().then(step);
   });
 }

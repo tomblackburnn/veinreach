@@ -101,6 +101,7 @@ export function validateWorldRecord(raw: unknown): WorldRecord {
       createdAt: num(m.createdAt, Date.now()),
       lastPlayed: num(m.lastPlayed, Date.now()),
       version: SAVE_VERSION,
+      genVersion: typeof m.genVersion === 'number' ? m.genVersion : 1,
       bossesDefeated: num(m.bossesDefeated, 0, 0, 5),
       unsealed: m.unsealed === true,
     },

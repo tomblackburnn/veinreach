@@ -46,6 +46,8 @@ export interface WorldMeta {
   createdAt: number;
   lastPlayed: number;
   version: number;
+  /** World generator version used to create this world. */
+  genVersion?: number;
   /** Summary for the world list. */
   bossesDefeated: number;
   unsealed: boolean;

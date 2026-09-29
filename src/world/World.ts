@@ -142,7 +142,8 @@ export class World {
     c.fg[i] = id;
     c.frame[i] = frame;
     this.touch(c, x, y, 'fg');
-    this.updateSkyTop(x);
+    // Generation recomputes all columns once at the end.
+    if (!this.generating) this.updateSkyTop(x);
   }
 
   setFrame(x: number, y: number, frame: number): void {

@@ -5,7 +5,7 @@ import { hexToRgb } from '../utils/color';
 
 const MARGIN = 14;
 const DECAY_AIR = 0.9;
-const DECAY_SOLID = 0.56;
+const DECAY_SOLID = 0.6;
 const DECAY_WATER = 0.8;
 
 /**
@@ -106,7 +106,7 @@ export class LightingSystem {
             } else dec = Math.min(dec, DECAY_WATER);
           }
           const skyTop = world.skyTop[tx];
-          if (ty < skyTop || (ty < L.undergroundY && !opaque[fg] && world.getWall(tx, ty) === 0)) {
+          if (ty <= skyTop || (ty < L.undergroundY && !opaque[fg] && world.getWall(tx, ty) === 0)) {
             lr = Math.max(lr, sky.r);
             lg = Math.max(lg, sky.g);
             lb = Math.max(lb, sky.b);

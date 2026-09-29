@@ -65,9 +65,16 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 - Liquids can occasionally leave thin, single-cell films on uneven floors (evaporation removes most of them).
 - Very fast projectiles against one-tile-thick platforms don't collide with platforms (by design they pass through).
 
+## Recent changes
+
+- World generation about 3× faster (medium world ~0.25 s in Node): sky-light columns are no longer rescanned per tile during generation.
+- `GEN_VERSION` is stored in world metadata; loading a world made by an older generator shows a warning.
+- Shorter trees with larger crowns; surface tiles are now fully sky-lit.
+
 ## Next priorities
 
-1. Server-side enemy and boss simulation for multiplayer.
+1. Finish the in-browser visual tour of every biome and structure on a fresh world (started; taiga was checked).
+2. Server-side enemy and boss simulation for multiplayer.
 2. Smart cursor, vanity slots, per-item prefixes (reforging).
 3. More structure variety: temple interiors, dungeon traps.
 4. Mobile/touch controls; gamepad support.

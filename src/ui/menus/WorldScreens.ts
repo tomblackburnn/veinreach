@@ -1,7 +1,7 @@
 import { h, clear, uid } from '../../utils/dom';
 import type { MenuHost } from './MenuHost';
 import type { CharacterSave, WorldRecord } from '../../save/types';
-import { WORLD_SIZES, type WorldSizeKey, SAVE_VERSION } from '../../core/config';
+import { WORLD_SIZES, type WorldSizeKey, SAVE_VERSION, GEN_VERSION } from '../../core/config';
 import { defaultWorldState } from '../../world/WorldState';
 import { randomSeedString } from '../../utils/random';
 
@@ -82,7 +82,7 @@ export function worldCreate(host: MenuHost, c: CharacterSave): HTMLElement {
     const dims = WORLD_SIZES[size];
     const rec: WorldRecord = {
       id,
-      meta: { id, name: name.value.trim() || 'Unnamed World', seed: seed.value.trim() || randomSeedString(), size, width: dims.width, height: dims.height, createdAt: Date.now(), lastPlayed: Date.now(), version: SAVE_VERSION, bossesDefeated: 0, unsealed: false },
+      meta: { id, name: name.value.trim() || 'Unnamed World', seed: seed.value.trim() || randomSeedString(), size, width: dims.width, height: dims.height, createdAt: Date.now(), lastPlayed: Date.now(), version: SAVE_VERSION, genVersion: GEN_VERSION, bossesDefeated: 0, unsealed: false },
       state: defaultWorldState(),
     };
     host.startWorld(c, rec, true);

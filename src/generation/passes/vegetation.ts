@@ -41,10 +41,10 @@ export function* vegetation(ctx: GenContext): Generator<number> {
     const ground = world.getFg(x, y);
     const canTree = x - lastTree > 3 && !ctx.isProtected(x, y - 2);
     if (biome === 'meadow' && ground === T.meadowgrass) {
-      if (canTree && rng.chance(0.16) && growTree(world, x, y, TREE_KIND.oak, rng.int(7, 15))) lastTree = x;
+      if (canTree && rng.chance(0.16) && growTree(world, x, y, TREE_KIND.oak, rng.int(6, 11))) lastTree = x;
       else if (rng.chance(0.55)) world.setFg(x, y - 1, rng.chance(0.18) ? flower : tall, rng.int(0, 3));
     } else if (biome === 'taiga' && (ground === T.snow)) {
-      if (canTree && rng.chance(0.2) && growTree(world, x, y, TREE_KIND.pine, rng.int(9, 17))) lastTree = x;
+      if (canTree && rng.chance(0.2) && growTree(world, x, y, TREE_KIND.pine, rng.int(6, 11))) lastTree = x;
     } else if (biome === 'dunes' && ground === T.sand) {
       if (canTree && rng.chance(0.06)) {
         const h = rng.int(3, 5);
@@ -52,9 +52,9 @@ export function* vegetation(ctx: GenContext): Generator<number> {
         lastTree = x;
       }
     } else if (biome === 'shore' && ground === T.sand) {
-      if (canTree && rng.chance(0.07) && growTree(world, x, y, TREE_KIND.palm, rng.int(8, 13))) lastTree = x;
+      if (canTree && rng.chance(0.07) && growTree(world, x, y, TREE_KIND.palm, rng.int(7, 11))) lastTree = x;
     } else if (biome === 'blightmire' && ground === T.blightgrass) {
-      if (canTree && rng.chance(0.1) && growTree(world, x, y, TREE_KIND.dead, rng.int(6, 12))) lastTree = x;
+      if (canTree && rng.chance(0.1) && growTree(world, x, y, TREE_KIND.dead, rng.int(5, 9))) lastTree = x;
       else if (rng.chance(0.2)) world.setFg(x, y - 1, thorn, 0);
       else if (rng.chance(0.3)) world.setFg(x, y - 1, tall, 4);
     }

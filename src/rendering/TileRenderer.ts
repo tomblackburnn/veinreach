@@ -246,7 +246,10 @@ export class TileRenderer {
     for (const [tx, ty, kind] of crowns) {
       const c = treeCrown(kind);
       const sway = Math.sin(tick * 0.02 + tx) * 1;
-      g.drawImage(c, tx * S + 8 - c.width / 2 + sway, ty * S + 16 - c.height + 10);
+      const k = kind === 4 ? 1 : 1.35;
+      const w = c.width * k;
+      const hgt = c.height * k;
+      g.drawImage(c, tx * S + 8 - w / 2 + sway, ty * S + 16 - hgt + 10 * k, w, hgt);
     }
   }
 
