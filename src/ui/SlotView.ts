@@ -41,12 +41,13 @@ export class SlotView {
     if (id === this.lastId && count === this.lastCount) return;
     this.lastId = id;
     this.lastCount = count;
+    this.el.className = this.el.className.replace(/\br\d\b/g, '').replace(/\s+/g, ' ').trim();
     if (id) {
       this.img.src = itemIconUrl(id);
       this.img.style.display = '';
       this.el.classList.remove('ghost');
       const r = ItemRegistry.get(id).rarity;
-      this.el.className = this.el.className.replace(/\br\d\b/g, '').trim() + (r ? ` r${r}` : '');
+      if (r) this.el.classList.add(`r${r}`);
     } else if (this.ghost) {
       this.img.src = itemIconUrl(this.ghost);
       this.img.style.display = '';

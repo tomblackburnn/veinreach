@@ -103,6 +103,7 @@ export class SimContext implements GameContext {
       this.tick++;
       this.player.input = { ...emptyInput(), ...this.nextInput };
       this.time.update();
+      this.npcs.update(this);
       this.entities.update(this);
       this.mining.update();
       this.particles.update();

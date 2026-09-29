@@ -239,16 +239,22 @@ export class Hud {
     this.msgs = this.msgs.filter((m) => m.t <= 60 * 8);
   }
 
-  banner(text: string, sub?: string, color = '#ffe16b'): void {
-    const el = h('div', { class: 'banner' }, h('div', { class: 'big', style: `color:${color}` }, text), sub ? h('div', { class: 'sub' }, sub) : null);
+  private bannerEl: HTMLElement | null = null;
+
+  /** Show a centre-screen banner; a newer banner replaces the current one. */
+  banner(text: string, sub?: string, color = '#ffe16b', extraClass = ''): void {
+    this.bannerEl?.remove();
+    const el = h('div', { class: `banner ${extraClass}` }, h('div', { class: 'big', style: `color:${color}` }, text), sub ? h('div', { class: 'sub' }, sub) : null);
+    this.bannerEl = el;
     this.el.appendChild(el);
-    setTimeout(() => el.remove(), 4600);
+    setTimeout(() => {
+      el.remove();
+      if (this.bannerEl === el) this.bannerEl = null;
+    }, 4600);
   }
 
   bossIntro(name: string, title: string): void {
-    const el = h('div', { class: 'banner boss-intro' }, h('div', { class: 'big', style: 'color:#ff6a8a' }, name), h('div', { class: 'sub' }, title));
-    this.el.appendChild(el);
-    setTimeout(() => el.remove(), 4600);
+    this.banner(name, title, '#ff6a8a', 'boss-intro');
   }
 
   saveIndicator(text: string): void {

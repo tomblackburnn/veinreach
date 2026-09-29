@@ -32,6 +32,17 @@ export class PlayerInventory {
     return left;
   }
 
+  /** Coins that end up in item slots (e.g. looted from chests) go to the wallet. */
+  absorbCurrency(): void {
+    for (let i = 0; i < this.main.size; i++) {
+      const s = this.main.get(i);
+      if (s?.id === 'aurel') {
+        this.wallet += s.count;
+        this.main.set(i, null);
+      }
+    }
+  }
+
   canFit(stack: ItemStack): boolean {
     if (stack.id === 'aurel') return true;
     return this.main.roomFor(stack.id) + (ItemRegistry.get(stack.id).category === 'ammo' ? this.ammo.roomFor(stack.id) : 0) > 0;

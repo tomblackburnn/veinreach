@@ -18,7 +18,7 @@ export interface BossDef {
 
 export const BOSSES: BossDef[] = [
   {
-    id: 'gravelmaw', name: 'Gravelmaw', title: 'the Burrowing Tyrant', life: 2400, defense: 8, damage: 22, w: 84, h: 52, music: 'boss1', loot: 'boss_gravelmaw',
+    id: 'gravelmaw', name: 'Gravelmaw', title: 'the Burrowing Tyrant', life: 2400, defense: 8, damage: 22, w: 108, h: 66, music: 'boss1', loot: 'boss_gravelmaw',
     summonItem: 'grubbling_lure', summonHint: 'Use a Grubbling Lure anywhere underground.',
     lore: 'A beetle the size of a house that has eaten its way through the Underlayers for a thousand years.',
     colors: ['#8a6a4a', '#c0a070', '#4a3020', '#ff6a3a'],

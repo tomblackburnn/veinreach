@@ -68,15 +68,17 @@ export class InventoryPanel {
         h('div', { class: 'panel' }, h('h3', {}, 'Inventory'), main, h('div', { class: 'row', style: 'margin-top:8px' }, sortBtn, depositBtn, h('div', { class: 'spacer' }), h('span', { class: 'label-sm' }, 'Trash'), trash)),
         this.chestWrap,
       ),
-      h('div', { class: 'panel' },
-        h('h3', {}, 'Equipment'),
-        h('div', { class: 'row', style: 'align-items:flex-start' },
-          h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Armour'), armor),
-          h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Accessories'), acc),
-          h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Ammo'), ammo),
+      h('div', { class: 'col' },
+        h('div', { class: 'panel' },
+          h('h3', {}, 'Equipment'),
+          h('div', { class: 'row', style: 'align-items:flex-start' },
+            h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Armour'), armor),
+            h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Accessories'), acc),
+            h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Ammo'), ammo),
+          ),
         ),
+        h('div', { class: 'panel', style: 'width:340px' }, h('h3', {}, 'Crafting'), this.stationsEl, this.craftList, this.craftDetail),
       ),
-      h('div', { class: 'panel', style: 'width:340px' }, h('h3', {}, 'Crafting'), this.stationsEl, this.craftList, this.craftDetail),
     );
     this.el.style.display = 'none';
     s.host.ui.root.appendChild(this.el);
@@ -245,9 +247,10 @@ export class InventoryPanel {
       this.cursorImg.src = itemIconUrl(this.cursor.stack.id);
       this.cursorCount.textContent = this.cursor.stack.count > 1 ? String(this.cursor.stack.count) : '';
     } else this.cursorEl.style.display = 'none';
+    const inv = this.s.player.inventory;
+    inv.absorbCurrency();
     if (!this.isOpen) return;
     for (const [c, views] of this.views) views.forEach((v, i) => v.set(c.get(i)));
-    const inv = this.s.player.inventory;
     const hot = this.views.get(inv.main);
     hot?.forEach((v, i) => v.select(i === inv.selected));
     // Chest range check.

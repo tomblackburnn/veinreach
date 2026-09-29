@@ -569,7 +569,7 @@ export class GameSession implements GameContext {
     if (this.lightFrame++ % 2 === 0) {
       const lights = this.entities.lights(l, t, r, b);
       const p = this.player;
-      if (!p.dead) lights.push({ x: p.cx, y: p.cy, r: 0.14, g: 0.13, b: 0.15, radius: 2 });
+      if (!p.dead) lights.push({ x: p.cx, y: p.cy, r: 0.3, g: 0.28, b: 0.32, radius: 2 });
       this.lighting.compute(this.world, l, t, r, b, sky, lights, { nightVision: p.stats.nightVision > 0 });
     }
     this.lighting.render(g, this.settings.smoothLighting);

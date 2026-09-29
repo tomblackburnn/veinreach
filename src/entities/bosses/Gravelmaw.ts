@@ -216,7 +216,7 @@ export class Gravelmaw extends Boss {
     const t = this.frameTime;
     const f = this.facing;
     g.translate(Math.round(this.cx), Math.round(this.bottom));
-    g.scale(f, 1);
+    g.scale(f * 1.28, 1.28);
     if (this.attack === 'charge' && this.attackT < 45) g.translate(Math.sin(t * 1.5) * 2, 0);
     const walk = this.onGround && Math.abs(this.vx) > 0.3 ? Math.sin(t * 0.3) * 3 : 0;
     const R = (x: number, y: number, w: number, h: number, c: string) => {
