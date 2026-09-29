@@ -291,3 +291,10 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .paint-swatch { width: 22px; height: 22px; border: 2px solid #1a1420; cursor: pointer; box-sizing: border-box; }
 .paint-swatch.active { outline: 2px solid #f5cf3c; outline-offset: 1px; }
 .paint-tools .btn { min-width: 52px; }
+
+/* ---------- Multiplayer menu ---------- */
+.mp-section { border-top: 2px dashed var(--panel-3); padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.mp-section h3 { margin: 0; }
+.mp-advanced { border-top: 2px dashed var(--panel-3); padding-top: 8px; }
+.mp-advanced summary { cursor: pointer; font-family: var(--font-head); font-size: 12px; color: var(--gold-2); margin-bottom: 6px; }
+.mp-advanced > * + * { margin-top: 6px; }

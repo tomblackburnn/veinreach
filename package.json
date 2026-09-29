@@ -2,7 +2,7 @@
   "name": "veinreach",
   "version": "0.1.0",
   "private": true,
-  "description": "Veinreach — a browser-based 2D sandbox survival adventure.",
+  "description": "Veinreach \u2014 a browser-based 2D sandbox survival adventure.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,17 +11,22 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p server/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "server": "tsx server/index.ts"
+    "server": "tsx server/index.ts",
+    "emulators": "firebase emulators:start --only auth,database",
+    "dev:online": "VITE_FIREBASE_EMULATOR=1 vite",
+    "deploy": "firebase deploy --only hosting,database,auth"
   },
   "devDependencies": {
     "@types/node": "^26.6.3",
     "@types/ws": "^8.18.2",
+    "firebase-tools": "^15.32.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
     "vitest": "^5.0.2"
   },
   "dependencies": {
+    "firebase": "^12.19.0",
     "ws": "^8.22.0"
   }
 }

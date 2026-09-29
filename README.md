@@ -68,6 +68,9 @@ Then open http://localhost:5173.
 | `npm run test` | Run the Vitest suite (unit + headless simulation tests) |
 | `npm run typecheck` | Typecheck the client and the server |
 | `npm run server` | Start the multiplayer server (default `ws://localhost:7777`) |
+| `npm run emulators` | Start the local Firebase Auth + Realtime Database emulators |
+| `npm run dev:online` | Dev server whose online multiplayer uses the emulators instead of the live database |
+| `npm run deploy` | Build and deploy the site, database rules and auth settings to Firebase |
 
 Dev convenience: open `http://localhost:5173/?autoplay` to resume the most recent character and world directly.
 
@@ -183,22 +186,30 @@ The same seed and size always produce the same world. This is covered by a test.
 
 ## Multiplayer
 
-**Status: experimental.** Single-player is fully independent of it.
+There are two ways to play together. Both share the same things:
+- Terrain from the shared seed, plus everyone's block and wall edits.
+- Chests, paintings and bucket liquids.
+- Time of day and world progression flags (a boss kill unlocks progression for everyone, including the Unsealing).
+- Chat (press Enter) and player avatars (position, animation, armour, held item).
+
+Creatures, bosses, projectiles, dropped items and liquid flow are still simulated separately for each player. See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+### Online worlds (Firebase) — the default
+
+Open **Multiplayer** from the main menu:
+- **Create & Play** makes a new online world with a six-character code (for example `K7QM2X`). Share the code; anyone with it can join, even when you're offline. Worlds are stored in Firebase Realtime Database.
+- **Join a friend** joins a world by its code. Recent worlds are listed for one-click rejoin.
+- **Put one of your worlds online** copies a saved single-player world into a new online world. Your local save is not changed.
+
+Each browser tab signs in anonymously and invisibly, so two tabs are two players. The database security rules only allow signed-in players to write well-formed data to rooms that exist. They also stop anyone rewriting a room's settings, impersonating another player's avatar or chat, or listing other people's rooms. They can't check game logic the way the Node server does (for example, how far an edit is from the player), so treat room codes like a private invite. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for hosting, the emulators and the rules.
+
+### Self-hosted server (advanced)
 
 ```bash
 npm run server -- --port 7777 --world "My Realm" --seed 12345 --size medium
 ```
 
-Then choose **Multiplayer (Experimental)** in the main menu and connect to `ws://localhost:7777`.
-
-What is synchronised (2–8 players):
-- Terrain from the shared seed, plus server-held modifications.
-- Block and wall edits. The server validates them (range, bounds, ids, rate limits), stores them and relays them to other players.
-- Chests and paintings (validated), bucket liquids, time of day, world progression flags (a boss kill unlocks progression for everyone, including the Unsealing) and chat.
-- Player avatars: position, animation, armour and held light.
-- The server saves the world to `server/data/<world>.json` every minute and on shutdown.
-
-What is **not** synchronised yet: creatures, bosses, projectiles, dropped items and liquid flow. These are simulated separately on each client. See [docs/ROADMAP.md](docs/ROADMAP.md).
+Then open **Multiplayer → Self-hosted server** in the main menu and connect to `ws://localhost:7777`. This server validates every edit (range, bounds, ids, rate limits), stores the world, and saves it to `server/data/<world>.json` every minute and on shutdown.
 
 ## Extending the game
 

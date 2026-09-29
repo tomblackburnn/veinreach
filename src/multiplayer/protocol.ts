@@ -51,9 +51,14 @@ export type ServerMsg =
       chunks: ExportedChunk[];
       chests: ChestData[];
       paintings: PaintingData[];
+      /** Individual tile edits as [x, y, fg, frame, wall] quintuplets (Firebase rooms). */
+      tiles?: number[];
+      /** Liquids as [x, y, amount, type] quadruplets (Firebase rooms). */
+      liquids?: number[];
       time: number;
       day: number;
       flags: string[];
+      /** -1 when the client should use the spawn from its own world generation. */
       spawnX: number;
       spawnY: number;
       players: PlayerInfo[];

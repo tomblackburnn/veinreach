@@ -15,14 +15,16 @@ import { multiplayerScreen } from '../ui/menus/MultiplayerScreen';
 import { buildSettingsPanel } from '../ui/menus/SettingsScreen';
 import { h } from '../utils/dom';
 import { generateWorld, runSliced } from '../generation/WorldGenerator';
-import { WORLD_SIZES, GEN_VERSION } from './config';
+import { WORLD_SIZES, GEN_VERSION, type WorldSizeKey } from './config';
 import { applyChunkRecord, applyExplored, decodeChunkRecord } from '../save/serialization';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { TimeSystem } from '../systems/TimeSystem';
 import { Camera } from '../engine/Camera';
 import { skyLight } from '../lighting/LightingSystem';
 import type { BiomeKey } from '../data/biomes';
-import { NetworkManager } from '../multiplayer/NetworkManager';
+import { NetworkManager, type Connection } from '../multiplayer/NetworkManager';
+import { diffSavedWorld, replayUnsealing } from '../multiplayer/worldDiff';
+import { TileRegistry } from '../world/TileRegistry';
 import { defaultWorldState } from '../world/WorldState';
 import { applyRemotePainting } from '../world/paintings';
 import { ItemRegistry } from '../items/ItemRegistry';
@@ -187,18 +189,90 @@ export class Game implements MenuHost {
     }
   }
 
-  async joinServer(c: CharacterSave, url: string): Promise<void> {
+  /** Join a self-hosted Node server. */
+  joinServer(c: CharacterSave, url: string): Promise<void> {
+    return this.joinWith(c, `Connecting to ${url}...`, `net:${url}`, () => NetworkManager.connect(url, c));
+  }
+
+  /** Join an online (Firebase) world by its room code. */
+  joinRoom(c: CharacterSave, code: string): Promise<void> {
+    return this.joinWith(c, `Joining online world ${code}...`, `room:${code}`, async () => {
+      const rooms = await import('../multiplayer/firebase/rooms');
+      const conn = await rooms.connectRoom(code, c);
+      rooms.rememberRoom(code, conn.welcome.world.name);
+      return conn;
+    }, code);
+  }
+
+  /** Create a brand-new online world, then join it. */
+  async createRoom(c: CharacterSave, name: string, seed: string, size: WorldSizeKey): Promise<void> {
+    if (this.busy) return;
+    const loading = loadingScreen();
+    this.ui.show(loading.el);
+    loading.set('Creating online world...', 0.1);
+    let code: string;
+    try {
+      const rooms = await import('../multiplayer/firebase/rooms');
+      code = await rooms.createRoom(name, seed || String(Math.floor(Math.random() * 1e9)), size);
+    } catch (err) {
+      await this.ui.alert('Online world', (err as Error).message);
+      this.showMultiplayer(c);
+      return;
+    }
+    await this.joinRoom(c, code);
+  }
+
+  /** Put one of this browser's saved worlds online as a new room, then join it. */
+  async hostWorld(c: CharacterSave, worldId: string): Promise<void> {
     if (this.busy) return;
     this.busy = true;
     const loading = loadingScreen();
     this.ui.show(loading.el);
-    loading.set(`Connecting to ${url}...`, 0);
+    let code: string;
     try {
-      const { net, welcome, players } = await NetworkManager.connect(url, c);
+      loading.set('Reading your world...', 0);
+      const data = await this.saves.loadWorld(worldId);
+      const m = data.record.meta;
+      const diff = await diffSavedWorld(data, (stage, p) => loading.set(stage, p * 0.6));
+      const rooms = await import('../multiplayer/firebase/rooms');
+      loading.set('Creating online world...', 0.62);
+      code = await rooms.createRoom(m.name, m.seed, m.size);
+      const st = data.record.state;
+      await rooms.uploadWorld(code, m.size, { ...diff, chests: st.chests, paintings: st.paintings, flags: st.flags, time: st.time, day: st.day }, (p) => loading.set(`Uploading ${diff.tiles.length / 5} changed tiles...`, 0.62 + p * 0.38));
+    } catch (err) {
+      console.error('[Game] hosting failed', err);
+      await this.ui.alert('Host online', (err as Error).message);
+      this.showMultiplayer(c);
+      return;
+    } finally {
+      this.busy = false;
+    }
+    await this.joinRoom(c, code);
+  }
+
+  /**
+   * Shared join flow: handshake, regenerate the world from its seed, replay
+   * the Unsealing if needed, then apply everything other players changed.
+   */
+  private async joinWith(c: CharacterSave, label: string, id: string, connect: () => Promise<Connection>, roomCode?: string): Promise<void> {
+    if (this.busy) return;
+    this.busy = true;
+    const loading = loadingScreen();
+    this.ui.show(loading.el);
+    loading.set(label, 0);
+    let net: NetworkManager | null = null;
+    try {
+      const conn = await connect();
+      net = conn.net;
+      const { welcome, players } = conn;
       const size = welcome.world.size in WORLD_SIZES ? welcome.world.size : 'medium';
       const { width, height } = WORLD_SIZES[size];
       const gen = await runSliced(generateWorld({ name: welcome.world.name, seed: welcome.world.seed, width, height }), (p) => loading.set(p.stage, p.progress));
       const world = gen.world;
+      if (welcome.flags.includes('unsealed')) {
+        loading.set('Replaying the Unsealing', 0.99);
+        replayUnsealing(world, welcome.world.seed);
+      }
       world.generating = true;
       for (const ch of welcome.chunks) {
         try {
@@ -207,29 +281,45 @@ export class Game implements MenuHost {
           console.warn('[Net] bad chunk from server', e);
         }
       }
+      const t = welcome.tiles ?? [];
+      for (let i = 0; i + 4 < t.length; i += 5) {
+        world.setFg(t[i], t[i + 1], t[i + 2], t[i + 3]);
+        world.setWall(t[i], t[i + 1], t[i + 4]);
+      }
+      const lq = welcome.liquids ?? [];
+      for (let i = 0; i + 3 < lq.length; i += 4) world.setLiquid(lq[i], lq[i + 1], lq[i + 2], lq[i + 3]);
       world.generating = false;
       world.recomputeSkyTop();
-      world.chests.clear();
+      if (welcome.chunks.length) world.chests.clear(); // the Node server sends every chest
       for (const ch of welcome.chests) world.chests.set(world.chestKey(ch.x, ch.y), ch);
+      // Chests that were broken lose their contents; newly placed ones start empty.
+      const chestId = TileRegistry.id('chest');
+      for (const [k, ch] of world.chests) if (world.getFg(ch.x, ch.y) !== chestId) world.chests.delete(k);
+      for (let i = 0; i + 4 < t.length; i += 5) {
+        if (t[i + 2] === chestId && t[i + 3] === 0 && !world.chests.has(world.chestKey(t[i], t[i + 1]))) world.chests.set(world.chestKey(t[i], t[i + 1]), { x: t[i], y: t[i + 1], items: new Array(40).fill(null) });
+      }
       for (const pt of welcome.paintings ?? []) applyRemotePainting(world, pt);
       const state = defaultWorldState();
       state.time = welcome.time;
       state.day = welcome.day;
       state.flags = welcome.flags;
-      state.spawnX = welcome.spawnX;
-      state.spawnY = welcome.spawnY;
+      state.spawnX = welcome.spawnX >= 0 ? welcome.spawnX : gen.spawnX;
+      state.spawnY = welcome.spawnY >= 0 ? welcome.spawnY : gen.spawnY;
       state.structures = gen.structures;
-      state.chests = welcome.chests;
+      state.chests = [...world.chests.values()];
       state.paintings = [...world.paintings.values()];
       const record: WorldRecord = {
-        id: `net:${url}`,
-        meta: { id: `net:${url}`, name: welcome.world.name, seed: welcome.world.seed, size, width, height, createdAt: Date.now(), lastPlayed: Date.now(), version: 1, bossesDefeated: 0, unsealed: false },
+        id,
+        meta: { id, name: welcome.world.name, seed: welcome.world.seed, size, width, height, createdAt: Date.now(), lastPlayed: Date.now(), version: 1, bossesDefeated: 0, unsealed: welcome.flags.includes('unsealed') },
         state,
       };
       net.initialPlayers = players;
       this.ui.clearAll();
       this.session = new GameSession({ host: this, world, record, character: c, net });
+      if (roomCode) this.session.message(`Online world code: ${roomCode} — share it so friends can join.`, '#9fd0ff');
+      net = null;
     } catch (err) {
+      net?.disconnect();
       await this.ui.alert('Multiplayer', (err as Error).message);
       this.showMultiplayer(c);
     } finally {

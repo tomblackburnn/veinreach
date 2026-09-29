@@ -56,7 +56,7 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Partially completed
 
-- **Multiplayer:** enemies, bosses, projectiles, drops and liquid flow are client-simulated rather than shared.
+- **Multiplayer:** enemies, bosses, projectiles, drops and liquid flow are client-simulated rather than shared. Online (Firebase) rooms are validated by security rules rather than a server, so a modified client could still cheat.
 - **Chunk streaming:** tile data is resident for the whole map; only render and simulation are chunk-scoped.
 - **Key rebinding** supports one key per action from the UI (defaults have two for movement).
 
@@ -68,6 +68,14 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Online multiplayer with Firebase.**
+  - The game deploys to Firebase Hosting.
+  - Online worlds live in Realtime Database: create one, join by a six-character code, or put a saved world online. No server to run.
+  - Anonymous per-tab sign-in and locked-down security rules.
+  - `FirebaseTransport` emulates the server protocol, so the WebSocket and Firebase backends share all client sync code.
+  - Late joiners now replay the Unsealing before applying edits (previously they never got the scar).
+  - `scripts/online-smoke.ts` checks sync and 9 security rules against the emulators.
+  - See docs/DEPLOYMENT.md.
 - Crafting panel: an **Expand** button turns it into a full-height recipe grid that takes over the Equipment column (details sit beside it on wide screens). The choice is remembered. It also gains a recipe search box and a "Craftable only" filter.
 - Fixed: the Stone Fountain's spray now arcs from the upper bowl's rim into the basin.
 - **Hearth & Home decor update**:

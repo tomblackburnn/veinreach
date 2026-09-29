@@ -7,3 +7,7 @@ coverage/
 *.log
 .vite/
 server/data/
+firebase-debug.log
+database-debug.log
+ui-debug.log
+.firebase/

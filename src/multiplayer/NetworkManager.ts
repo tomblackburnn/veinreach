@@ -1,4 +1,5 @@
-import { encode, decode, PROTOCOL_VERSION, type ClientMsg, type ServerMsg, type PlayerInfo } from './protocol';
+import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg, type PlayerInfo } from './protocol';
+import { WebSocketTransport, type Transport } from './transport';
 import type { GameSession } from '../core/GameSession';
 import { RemotePlayer } from './RemotePlayer';
 import type { ChestData, PaintingData } from '../world/WorldState';
@@ -7,7 +8,12 @@ import type { CharacterSave } from '../save/types';
 import { T } from '../world/TileRegistry';
 import { h } from '../utils/dom';
 
-type Welcome = Extract<ServerMsg, { t: 'welcome' }>;
+export type Welcome = Extract<ServerMsg, { t: 'welcome' }>;
+export interface Connection {
+  net: NetworkManager;
+  welcome: Welcome;
+  players: PlayerInfo[];
+}
 
 /**
  * Client side of multiplayer. Relays local tile edits, chests, progression
@@ -28,59 +34,56 @@ export class NetworkManager {
   private chatEl: HTMLInputElement | null = null;
   private unsub: (() => void)[] = [];
 
-  private constructor(private ws: WebSocket) {
-    ws.addEventListener('message', (e) => {
-      const m = decode<ServerMsg>(String(e.data));
-      if (m) this.queue.push(m);
-    });
-    ws.addEventListener('close', () => {
-      if (this.connected) this.session?.message('Disconnected from server.', '#ff6a6a');
+  private constructor(readonly transport: Transport) {}
+
+  /** Take over the transport's events once the handshake is done. */
+  private bind(): void {
+    this.transport.onMessage = (m) => this.queue.push(m);
+    this.transport.onClose = (reason) => {
+      if (this.connected) this.session?.message(reason, '#ff6a6a');
       this.connected = false;
-    });
+    };
   }
 
-  /** Connect and wait for the server's welcome (world seed + modifications). */
-  static connect(url: string, c: CharacterSave, timeoutMs = 8000): Promise<{ net: NetworkManager; welcome: Welcome; players: PlayerInfo[] }> {
+  /** Connect to a self-hosted Node server. */
+  static connect(url: string, c: CharacterSave, timeoutMs = 8000): Promise<Connection> {
+    let t: Transport;
+    try {
+      t = new WebSocketTransport(url);
+    } catch (e) {
+      return Promise.reject(new Error(`Invalid server address: ${String(e)}`));
+    }
+    return NetworkManager.connectWith(t, c, timeoutMs, 'Connection timed out. Is the server running (npm run server)?');
+  }
+
+  /** Say hello over any transport and wait for the welcome (world seed + modifications). */
+  static connectWith(t: Transport, c: CharacterSave, timeoutMs = 20000, timeoutMsg = 'Connection timed out.'): Promise<Connection> {
     return new Promise((resolve, reject) => {
-      let ws: WebSocket;
-      try {
-        ws = new WebSocket(url);
-      } catch (e) {
-        reject(new Error(`Invalid server address: ${String(e)}`));
-        return;
-      }
-      const net = new NetworkManager(ws);
-      const timer = setTimeout(() => {
-        ws.close();
-        reject(new Error('Connection timed out. Is the server running (npm run server)?'));
-      }, timeoutMs);
-      ws.addEventListener('open', () => net.send({ t: 'hello', version: PROTOCOL_VERSION, name: c.name, appearance: c.appearance }));
-      ws.addEventListener('error', () => {
+      const net = new NetworkManager(t);
+      const fail = (reason: string) => {
         clearTimeout(timer);
-        reject(new Error('Could not connect to the server.'));
-      });
-      const onMsg = (e: MessageEvent) => {
-        const m = decode<ServerMsg>(String(e.data));
-        if (!m) return;
-        if (m.t === 'reject') {
+        t.onMessage = null;
+        t.close();
+        reject(new Error(reason));
+      };
+      const timer = setTimeout(() => fail(timeoutMsg), timeoutMs);
+      t.onClose = (reason) => fail(reason);
+      t.onMessage = (m) => {
+        if (m.t === 'reject') fail(m.reason);
+        else if (m.t === 'welcome') {
           clearTimeout(timer);
-          ws.removeEventListener('message', onMsg);
-          reject(new Error(m.reason));
-        } else if (m.t === 'welcome') {
-          clearTimeout(timer);
-          ws.removeEventListener('message', onMsg);
+          net.bind();
           net.connected = true;
           net.id = m.id;
-          net.queue = net.queue.filter((q) => q.t !== 'welcome');
           resolve({ net, welcome: m, players: m.players });
-        }
+        } else net.queue.push(m);
       };
-      ws.addEventListener('message', onMsg);
+      t.send({ t: 'hello', version: PROTOCOL_VERSION, name: c.name, appearance: c.appearance });
     });
   }
 
   send(m: ClientMsg): void {
-    if (this.ws.readyState === WebSocket.OPEN) this.ws.send(encode(m));
+    this.transport.send(m);
   }
 
   attach(s: GameSession, players: PlayerInfo[] = this.initialPlayers): void {
@@ -137,6 +140,7 @@ export class NetworkManager {
 
   update(s: GameSession): void {
     if (!this.connected) return;
+    this.transport.update?.(s);
     for (const m of this.queue.splice(0)) this.handle(s, m);
     if (this.pending.length) {
       for (let i = 0; i < this.pending.length; i += 2500) this.send({ t: 'tiles', changes: this.pending.slice(i, i + 2500) });
@@ -239,10 +243,6 @@ export class NetworkManager {
     for (const u of this.unsub) u();
     window.removeEventListener('keydown', this.onKey);
     this.closeChat();
-    try {
-      this.ws.close();
-    } catch {
-      /* already closed */
-    }
+    this.transport.close();
   }
 }

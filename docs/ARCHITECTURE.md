@@ -99,7 +99,9 @@ Entity (position, velocity, facing, light())
 
 ## Multiplayer considerations
 
-`src/multiplayer/protocol.ts` is shared by the client and the Node server.
+`src/multiplayer/protocol.ts` is shared by the client and the Node server. `NetworkManager` speaks that protocol through a `Transport`:
+- `WebSocketTransport` talks to the Node server.
+- `FirebaseTransport` emulates the server on Realtime Database; see docs/DEPLOYMENT.md for the room layout and rules. The Firebase SDK is loaded lazily as its own chunk, so single-player never downloads it.
 
 - **World delivery:** the server regenerates the world from the seed with the same generator code and sends only modifications on join.
 - **Paintings** are object data (not tiles). They are sent as `paint` messages, validated by the server (canvas present at the origin, correct art size, sender in range), stored in the server save, and included in `welcome`. Breaking a canvas drops its painting on every side.

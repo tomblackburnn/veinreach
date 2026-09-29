@@ -1,5 +1,6 @@
 import type { GameHost } from '../../core/GameHost';
 import type { CharacterSave, WorldRecord } from '../../save/types';
+import type { WorldSizeKey } from '../../core/config';
 
 /**
  * Where to go after a character is chosen: the world list, the multiplayer
@@ -20,4 +21,7 @@ export interface MenuHost extends GameHost {
   showMultiplayer(c: CharacterSave): void;
   startWorld(c: CharacterSave, record: WorldRecord, isNew: boolean): void;
   joinServer(c: CharacterSave, url: string): void;
+  joinRoom(c: CharacterSave, code: string): void;
+  createRoom(c: CharacterSave, name: string, seed: string, size: WorldSizeKey): void;
+  hostWorld(c: CharacterSave, worldId: string): void;
 }
