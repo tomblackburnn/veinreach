@@ -190,11 +190,23 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .equip-grid { display: grid; grid-template-columns: repeat(2, 46px); gap: 4px; }
 .subgrid { display: grid; gap: 4px; }
 /* Fixed height (fits the screen) so filling in recipes never shifts the layout. */
-.craft-list { display: grid; grid-template-columns: repeat(6, 46px); grid-auto-rows: 46px; align-content: start; gap: 4px; height: clamp(96px, calc(100vh / var(--ui-scale) - 630px), 250px); overflow-y: scroll; overflow-x: hidden; padding-right: 2px; }
+.craft-list { display: grid; grid-template-columns: repeat(6, 46px); grid-auto-rows: 46px; align-content: start; gap: 4px; height: clamp(96px, calc(100vh / var(--ui-scale) - 668px), 250px); overflow-y: scroll; overflow-x: hidden; padding-right: 2px; }
 .craft-list::-webkit-scrollbar { width: 8px; }
 .craft-list::-webkit-scrollbar-thumb { background: var(--panel-3); border: 2px solid var(--edge); }
 .craft-list .slot.no img { opacity: 0.35; filter: grayscale(0.8); }
-.craft-detail { height: 124px; overflow-y: auto; margin-top: 8px; font-size: 18px; }
+.craft-detail { height: 112px; overflow-y: auto; margin-top: 8px; font-size: 18px; }
+.craft-panel { width: 340px; }
+.craft-filters { margin: 4px 0 6px; gap: 6px; }
+.craft-search { font-size: 18px !important; padding: 2px 6px !important; flex: 1; min-width: 0; }
+.craft-only { display: flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; }
+.craft-empty { grid-column: 1 / -1; padding: 6px 2px; }
+/* Expanded: takes the Equipment column. Details sit beside the list when there's room (.side), else below. */
+.craft-panel.expanded { width: max(340px, min(760px, calc(100vw / var(--ui-scale) - 560px))); }
+.craft-panel.expanded .craft-list { grid-template-columns: repeat(auto-fill, 46px); height: max(150px, calc(100vh / var(--ui-scale) - 400px)); }
+.craft-panel.expanded.side .craft-body { display: flex; gap: 10px; align-items: flex-start; }
+.craft-panel.expanded.side .craft-list { flex: 1; height: max(200px, calc(100vh / var(--ui-scale) - 262px)); }
+.craft-panel.expanded.side .craft-detail { flex: 0 0 220px; height: max(200px, calc(100vh / var(--ui-scale) - 262px)); margin-top: 0; }
+
 .ing { display: flex; align-items: center; gap: 4px; }
 .ing img { width: 22px; height: 22px; image-rendering: pixelated; }
 .ing.missing { color: var(--bad); }

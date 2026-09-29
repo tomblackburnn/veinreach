@@ -68,6 +68,8 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- Crafting panel: an **Expand** button turns it into a full-height recipe grid that takes over the Equipment column (details sit beside it on wide screens). The choice is remembered. It also gains a recipe search box and a "Craftable only" filter.
+- Fixed: the Stone Fountain's spray now arcs from the upper bowl's rim into the basin.
 - **Hearth & Home decor update**:
   - The **Artisan's Bench** station and 19 new decorations.
   - **Comfort** scoring: each kind of decoration counts once. Tiers grant Snug/Cozy/Lavish buffs and a lingering Hearthglow, and give townsfolk shop discounts of up to 15%.

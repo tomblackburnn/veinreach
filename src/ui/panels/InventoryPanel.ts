@@ -36,6 +36,13 @@ export class InventoryPanel {
   private craftList: HTMLDivElement;
   private craftDetail: HTMLDivElement;
   private stationsEl: HTMLDivElement;
+  private craftPanel: HTMLDivElement;
+  private equipPanel: HTMLDivElement;
+  private expandBtn: HTMLButtonElement;
+  private searchEl: HTMLInputElement;
+  private onlyCraftable = false;
+  /** Big crafting view: takes over the Equipment column with a full-height grid. */
+  private expanded = false;
   private selectedRecipe: Recipe | null = null;
   private recipeKey = '';
   private lastInvVersion = -1;
@@ -64,6 +71,34 @@ export class InventoryPanel {
     this.stationsEl = h('div', { class: 'label-sm' });
     this.craftList = h('div', { class: 'craft-list' });
     this.craftDetail = h('div', { class: 'craft-detail' });
+    this.expandBtn = h('button', { class: 'btn small', title: 'Show a bigger crafting list (hides Equipment while expanded)', onclick: () => this.setExpanded(!this.expanded) });
+    this.searchEl = h('input', { type: 'text', class: 'craft-search', placeholder: 'Search recipes…', maxlength: '30' });
+    this.searchEl.addEventListener('input', () => (this.recipeKey = ''));
+    this.searchEl.addEventListener('focus', () => (this.s.input.typing = true));
+    this.searchEl.addEventListener('blur', () => (this.s.input.typing = false));
+    this.searchEl.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Escape' || e.key === 'Enter') this.searchEl.blur();
+    });
+    const onlyBox = h('input', { type: 'checkbox' });
+    onlyBox.addEventListener('change', () => {
+      this.onlyCraftable = onlyBox.checked;
+      this.recipeKey = '';
+    });
+    this.craftPanel = h('div', { class: 'panel craft-panel' },
+      h('div', { class: 'row', style: 'margin-bottom:6px' }, h('h3', { style: 'margin:0' }, 'Crafting'), h('div', { class: 'spacer' }), this.expandBtn),
+      this.stationsEl,
+      h('div', { class: 'row craft-filters' }, this.searchEl, h('label', { class: 'label-sm craft-only' }, onlyBox, 'Craftable')),
+      h('div', { class: 'craft-body' }, this.craftList, this.craftDetail),
+    );
+    this.equipPanel = h('div', { class: 'panel' },
+      h('h3', {}, 'Equipment'),
+      h('div', { class: 'row', style: 'align-items:flex-start' },
+        h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Armour'), armor),
+        h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Accessories'), acc),
+        h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Ammo'), ammo),
+      ),
+    );
     this.el = h(
       'div',
       { class: 'inv-wrap' },
@@ -72,19 +107,16 @@ export class InventoryPanel {
         this.chestWrap,
         this.dock,
       ),
-      h('div', { class: 'col' },
-        h('div', { class: 'panel' },
-          h('h3', {}, 'Equipment'),
-          h('div', { class: 'row', style: 'align-items:flex-start' },
-            h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Armour'), armor),
-            h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Accessories'), acc),
-            h('div', { class: 'col', style: 'gap:4px' }, h('div', { class: 'label-sm' }, 'Ammo'), ammo),
-          ),
-        ),
-        h('div', { class: 'panel', style: 'width:340px' }, h('h3', {}, 'Crafting'), this.stationsEl, this.craftList, this.craftDetail),
-      ),
+      h('div', { class: 'col' }, this.equipPanel, this.craftPanel),
     );
     this.el.style.display = 'none';
+    let saved = false;
+    try {
+      saved = localStorage.getItem('veinreach.craftExpanded') === '1';
+    } catch {
+      /* storage unavailable: start collapsed */
+    }
+    this.setExpanded(saved);
     s.host.ui.root.appendChild(this.el);
   }
 
@@ -163,12 +195,14 @@ export class InventoryPanel {
   open(): void {
     this.isOpen = true;
     this.el.style.display = '';
+    this.fitCrafting();
     this.s.audio.play('menuClick');
     this.recipeKey = '';
   }
 
   close(): void {
     this.isOpen = false;
+    this.searchEl.blur();
     this.el.style.display = 'none';
     this.closeChest();
     Tooltip.hide();
@@ -264,23 +298,45 @@ export class InventoryPanel {
       const id = this.s.world.getFg(this.chest.x, this.chest.y);
       if (Math.abs(this.chest.x - p.tileX) > 7 || Math.abs(this.chest.y - p.tileY) > 6 || id !== TileRegistry.id('chest')) this.closeChest();
     }
+    if (this.s.tick % 30 === 0) this.fitCrafting();
     if (this.s.tick % 15 === 0 || inv.main.version !== this.lastInvVersion) {
       this.lastInvVersion = inv.main.version;
       this.updateCrafting();
     }
   }
 
+  setExpanded(on: boolean): void {
+    this.expanded = on;
+    this.craftPanel.classList.toggle('expanded', on);
+    this.equipPanel.style.display = on ? 'none' : '';
+    this.expandBtn.textContent = on ? '« Collapse' : 'Expand »';
+    this.fitCrafting();
+    try {
+      localStorage.setItem('veinreach.craftExpanded', on ? '1' : '0');
+    } catch {
+      /* per-viewer convenience only */
+    }
+  }
+
+  /** In the expanded view, put the details beside the recipe grid only when the panel is wide enough. */
+  private fitCrafting(): void {
+    const side = this.expanded && this.craftPanel.clientWidth >= 560;
+    if (side !== this.craftPanel.classList.contains('side')) this.craftPanel.classList.toggle('side', side);
+  }
+
   private updateCrafting(): void {
     const p = this.s.player;
     const stations = nearbyStations(this.s.world, p.tileX, p.tileY);
     const sources: ItemContainer[] = [p.inventory.main];
-    const recipes = listRecipes(stations, this.s.progression.flags, sources);
+    const query = this.searchEl.value.trim().toLowerCase();
+    const recipes = listRecipes(stations, this.s.progression.flags, sources).filter(({ recipe, craftable }) => (!this.onlyCraftable || craftable) && (!query || ItemRegistry.get(recipe.out).name.toLowerCase().includes(query)));
     const key = [...stations].sort().join(',') + '|' + recipes.map((r) => `${r.recipe.index}${r.craftable ? '+' : '-'}`).join(',');
     if (key === this.recipeKey) return;
     this.recipeKey = key;
     const names = [...stations].map((s) => STATION_NAMES[s] ?? s);
     this.stationsEl.textContent = names.length ? `Nearby: ${names.join(', ')}` : 'By hand (stand near stations for more)';
     clear(this.craftList);
+    if (!recipes.length) this.craftList.append(h('div', { class: 'hint craft-empty' }, query || this.onlyCraftable ? 'No matching recipes.' : 'Nothing to craft here yet.'));
     for (const { recipe, craftable } of recipes) {
       const v = new SlotView({ className: craftable ? '' : 'no' });
       v.set({ id: recipe.out, count: recipe.count });

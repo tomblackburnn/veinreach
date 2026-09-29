@@ -145,21 +145,24 @@ const painters: Record<DecorKey, (g: CanvasRenderingContext2D, world: World, ox:
     // Spout plume.
     const plume = 3 + Math.sin(t * 0.3) * 1;
     rect(g, x0 + 23, y0 + 2 - plume, 2, plume + 2, '#8ac0ff');
-    // Arcs from the upper bowl into the basin on both sides.
+    // Water spills over the upper bowl's rim (x 10..38, y 10) and arcs down
+    // into the basin's water surface (y 37), landing well inside its walls.
+    const RIM = 14; // rim offset from centre
+    const LAND = 19; // landing offset from centre
     for (const side of [-1, 1]) {
-      for (let i = 0; i < 7; i++) {
-        const k = ((t * 0.02 + i / 7) % 1 + 1) % 1;
-        const px = x0 + 24 + side * (12 + k * 16);
-        const py = y0 + 10 + k * k * 26 - k * 6;
-        g.globalAlpha = 0.85 - k * 0.3;
-        rect(g, px, py, 2, 2, k < 0.5 ? '#bfe0ff' : '#6aa8f0');
+      for (let i = 0; i < 8; i++) {
+        const k = ((t * 0.02 + i / 8) % 1 + 1) % 1;
+        const px = x0 + 24 + side * (RIM + k * (LAND - RIM)) - (side < 0 ? 1 : 0);
+        const py = y0 + 10 - 3 * k + 30 * k * k;
+        g.globalAlpha = 0.9 - k * 0.3;
+        rect(g, px, py, 1, 2, k < 0.5 ? '#bfe0ff' : '#6aa8f0');
       }
     }
     g.globalAlpha = 1;
     // Ripples where the water lands.
     for (const side of [-1, 1]) {
-      const r = (t * 0.1) % 4;
-      rect(g, x0 + 24 + side * 28 - r, y0 + 37, 1 + r * 2, 1, '#d0ecff');
+      const r = Math.floor((t * 0.1) % 4);
+      rect(g, x0 + 24 + side * LAND - r, y0 + 37, 1 + r * 2, 1, '#d0ecff');
     }
     // Shimmer on the basin surface.
     for (let i = 0; i < 4; i++) {

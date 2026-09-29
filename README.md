@@ -28,7 +28,7 @@ A full generated world (medium) rendered from its map colours:
 - **Player controller** with acceleration, coyote-time jumps, variable jump height, double jump, dash, rope climbing, fall damage, liquids, knockback and invulnerability frames.
 - **Inventory:** 50 slots with a 10-slot hotbar, plus 3 armour, 5 accessory, 4 ammo and a trash slot.
   - Drag and drop, stack splitting, shift-click, ctrl-click to trash, sorting, quick-stack and tooltips.
-- **Crafting:** 191 recipes across 8 crafting stations, detected automatically from nearby tiles. Some are gated on progression.
+- **Crafting:** 191 recipes across 8 crafting stations, detected automatically from nearby tiles. Some are gated on progression. The crafting panel has search, a "Craftable only" filter, and an **Expand** mode for a full-height recipe grid.
 - **Combat:**
   - **Weapon types:** melee swings, spears, boomerangs, bows, crossbows, guns, wands, staves, tomes and summoned minions.
   - **Mechanics:** crits, knockback, status effects, explosions, homing and piercing projectiles, and damage numbers.
