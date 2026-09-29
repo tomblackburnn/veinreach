@@ -1,7 +1,8 @@
 import { encode, decode, PROTOCOL_VERSION, type ClientMsg, type ServerMsg, type PlayerInfo } from './protocol';
 import type { GameSession } from '../core/GameSession';
 import { RemotePlayer } from './RemotePlayer';
-import type { ChestData } from '../world/WorldState';
+import type { ChestData, PaintingData } from '../world/WorldState';
+import { applyRemotePainting } from '../world/paintings';
 import type { CharacterSave } from '../save/types';
 import { T } from '../world/TileRegistry';
 import { h } from '../utils/dom';
@@ -182,6 +183,10 @@ export class NetworkManager {
         s.world.chests.set(s.world.chestKey(m.chest.x, m.chest.y), m.chest);
         s.inventory.refreshChest(m.chest);
         break;
+      case 'paint':
+        applyRemotePainting(s.world, m.painting);
+        s.paint.refresh(m.painting);
+        break;
       case 'flag':
         this.applyingRemote = true;
         s.progression.set(m.flag);
@@ -210,12 +215,17 @@ export class NetworkManager {
       w.setWall(x, y, wall);
       if (fg === T.chest && frame === 0 && !w.chests.has(w.chestKey(x, y))) w.chests.set(w.chestKey(x, y), { x, y, items: new Array(40).fill(null) });
       if (before === T.chest && fg !== T.chest) w.chests.delete(w.chestKey(x, y));
+      if (before !== fg) w.paintings.delete(w.chestKey(x, y));
     }
     this.applyingRemote = false;
   }
 
   sendChest(chest: ChestData): void {
     if (this.connected) this.send({ t: 'chest', chest });
+  }
+
+  sendPainting(painting: PaintingData): void {
+    if (this.connected) this.send({ t: 'paint', painting });
   }
 
   sendChestOpen(_x: number, _y: number): void {

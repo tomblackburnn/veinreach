@@ -24,6 +24,7 @@ import { skyLight } from '../lighting/LightingSystem';
 import type { BiomeKey } from '../data/biomes';
 import { NetworkManager } from '../multiplayer/NetworkManager';
 import { defaultWorldState } from '../world/WorldState';
+import { applyRemotePainting } from '../world/paintings';
 import { ItemRegistry } from '../items/ItemRegistry';
 import { RecipeRegistry } from '../crafting/RecipeRegistry';
 
@@ -210,6 +211,7 @@ export class Game implements MenuHost {
       world.recomputeSkyTop();
       world.chests.clear();
       for (const ch of welcome.chests) world.chests.set(world.chestKey(ch.x, ch.y), ch);
+      for (const pt of welcome.paintings ?? []) applyRemotePainting(world, pt);
       const state = defaultWorldState();
       state.time = welcome.time;
       state.day = welcome.day;
@@ -218,6 +220,7 @@ export class Game implements MenuHost {
       state.spawnY = welcome.spawnY;
       state.structures = gen.structures;
       state.chests = welcome.chests;
+      state.paintings = [...world.paintings.values()];
       const record: WorldRecord = {
         id: `net:${url}`,
         meta: { id: `net:${url}`, name: welcome.world.name, seed: welcome.world.seed, size, width, height, createdAt: Date.now(), lastPlayed: Date.now(), version: 1, bossesDefeated: 0, unsealed: false },

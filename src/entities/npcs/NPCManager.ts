@@ -1,12 +1,19 @@
 import type { GameContext } from '../../core/context';
 import { NPCS, NPC_MAP, type NPCDef, type ShopEntry } from '../../data/npcs';
 import { NPC } from './NPC';
-import { checkRoom, type RoomCheck } from '../../world/housing';
+import { checkRoom, comfortTier, COMFORT_TIERS, type RoomCheck, type ComfortTier } from '../../world/housing';
 import { TileRegistry } from '../../world/TileRegistry';
 import type { SavedNPC } from '../../world/WorldState';
 import { ItemRegistry, buyPrice } from '../../items/ItemRegistry';
 
 const CHECK_INTERVAL = 60 * 8;
+
+/** What townsfolk say about their room, by comfort tier. */
+const COMFORT_LINES: Partial<Record<ComfortTier['key'], string[]>> = {
+  bare: ['Four walls and a chair. It’s a roof, I suppose.', 'Would it kill you to hang a picture in here?'],
+  cozy: ['I do love what you’ve done with my room. I might even knock a little off my prices.', 'Honestly? Best room I’ve ever lived in.'],
+  lavish: ['This place is a palace! For a landlord this generous, my best prices.', 'I wake up every morning and just stare at the decor. Wonderful.'],
+};
 const SCAN_RADIUS = 70;
 
 /** Housing assignment, NPC arrival conditions, dialogue and shop inventories. */
@@ -132,13 +139,28 @@ export class NPCManager {
     else if (ctx.time.isNight) pool.push(...d.nightLines, ...d.lines);
     else pool.push(...d.lines);
     for (const [flag, line] of Object.entries(d.flagLines ?? {})) if (ctx.progression.has(flag)) pool.push(line, line);
+    const home = this.homeComfort(ctx, n);
+    if (home && !ctx.worldEvents.active) pool.push(...(COMFORT_LINES[home.tier.key] ?? []));
     return pool[Math.floor(Math.random() * pool.length)] ?? '...';
   }
 
+  /** Comfort of an NPC's home, or null if they have no valid home. */
+  homeComfort(ctx: GameContext, n: NPC): { comfort: number; tier: ComfortTier } | null {
+    if (n.homeX === null || n.homeY === null) return null;
+    const r = checkRoom(ctx.world, n.homeX, n.homeY);
+    return r.valid ? { comfort: r.comfort ?? 0, tier: comfortTier(r.comfort ?? 0) } : null;
+  }
+
+  /** Shop price multiplier: townsfolk in comfortable homes give discounts. */
+  priceMultiplier(ctx: GameContext, n: NPC): number {
+    return 1 - (this.homeComfort(ctx, n)?.tier.discount ?? 0);
+  }
+
   shop(ctx: GameContext, n: NPC): { entry: ShopEntry; price: number }[] {
+    const mult = this.priceMultiplier(ctx, n);
     return n.def.shop
       .filter((e) => ItemRegistry.has(e.item) && (!e.requires || ctx.progression.has(e.requires)))
-      .map((e) => ({ entry: e, price: e.price ?? buyPrice(ItemRegistry.get(e.item)) }));
+      .map((e) => ({ entry: e, price: Math.max(1, Math.round((e.price ?? buyPrice(ItemRegistry.get(e.item))) * mult)) }));
   }
 
   healCost(ctx: GameContext): number {
@@ -153,7 +175,17 @@ export class NPCManager {
     const r = checkRoom(ctx.world, tx, ty);
     if (!r.valid) return r.reason ?? 'Not a valid room.';
     const owner = this.list.find((n) => n.homeX !== null && checkRoom(ctx.world, n.homeX, n.homeY!).key === r.key);
-    return owner ? `This is ${owner.displayName}'s home.` : 'This room is suitable for a new resident!';
+    const base = owner ? `This is ${owner.displayName}'s home.` : 'This room is suitable for a new resident!';
+    return `${base} ${this.comfortSummary(r.comfort ?? 0)}`;
+  }
+
+  /** One-line comfort rating with what the next tier needs. */
+  comfortSummary(comfort: number): string {
+    const tier = comfortTier(comfort);
+    const next = COMFORT_TIERS.find((t) => t.min > comfort);
+    const perk = tier.discount ? ` Prices here are ${Math.round(tier.discount * 100)}% lower.` : '';
+    const more = next ? ` ${next.min - comfort} more comfort for ${next.name}.` : '';
+    return `Comfort ${comfort} (${tier.name}).${perk}${more}`;
   }
 
   hints(ctx: GameContext): string[] {

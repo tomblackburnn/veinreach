@@ -6,6 +6,14 @@ import { TileTextures, VARIANTS } from './sprites/tileTextures';
 import { ObjectSprites, treeCrown } from './sprites/objectSprites';
 import { makeCanvas, ctx2d, Pix, type Canvas2D } from './sprites/pixel';
 import { hash3 } from '../utils/random';
+import { paintingSprite } from './sprites/paintings';
+import { animatedDecor, renderDecor, exposedToWind, type DecorEnv } from './DecorRenderer';
+import { isCanvasTile } from '../world/paintings';
+
+const PRISM_BEAM = ['#ff6a6a', '#ffb04a', '#f5e04a', '#6ad06a', '#5a9aff', '#b070ff'];
+
+/** Multi-tile objects whose look varies by where they're placed. */
+const PLACED_VARIANTS = new Set(['rug']);
 
 interface CacheEntry {
   canvas: Canvas2D;
@@ -125,7 +133,7 @@ export class TileRenderer {
         const px = lx * S;
         const py = ly * S;
         if (def.texture.kind === 'sprite') {
-          this.drawSpriteTile(g, def.key, chunk.frame[i], px, py, def.size);
+          this.drawSpriteTile(g, world, id, chunk.frame[i], tx, ty, px, py);
           continue;
         }
         const tex = TileTextures.tile(id, hash3(tx, ty, 0) % VARIANTS);
@@ -185,14 +193,18 @@ export class TileRenderer {
     }
   }
 
-  private drawSpriteTile(g: CanvasRenderingContext2D, key: string, frame: number, px: number, py: number, size?: [number, number]): void {
+  private drawSpriteTile(g: CanvasRenderingContext2D, world: World, id: number, frame: number, tx: number, ty: number, px: number, py: number): void {
+    const def = TileRegistry.get(id);
+    const key = def.key;
     let spriteKey = key;
     let variant = 0;
-    if (size) {
-      const spr = ObjectSprites.get(spriteKey, 0);
-      if (!spr) return;
+    if (def.size) {
       const ox = frame & 15;
       const oy = frame >> 4;
+      let spr: Canvas2D | null;
+      if (isCanvasTile(id)) spr = paintingSprite(key, world.paintings.get(`${tx - ox},${ty - oy}`));
+      else spr = ObjectSprites.get(spriteKey, PLACED_VARIANTS.has(key) ? hash3(tx - ox, ty - oy, 9) % 4 : 0);
+      if (!spr) return;
       g.drawImage(spr, ox * S, oy * S, S, S, px, py, S, S);
       return;
     }
@@ -206,12 +218,18 @@ export class TileRenderer {
    * Per-frame pass over visible tiles for things that animate or overflow
    * their cell: liquids, tree crowns, flames.
    */
-  renderDynamic(g: CanvasRenderingContext2D, world: World, l: number, t: number, r: number, b: number, tick: number): void {
+  /** Wind chimes drawn last frame that are out in the wind: [x, y] in world pixels. */
+  readonly exposedChimes: [number, number][] = [];
+
+  renderDynamic(g: CanvasRenderingContext2D, world: World, l: number, t: number, r: number, b: number, env: DecorEnv): void {
+    const tick = env.tick;
     const x0 = Math.max(0, Math.floor(l / S) - 3);
-    const y0 = Math.max(0, Math.floor(t / S) - 1);
+    const y0 = Math.max(0, Math.floor(t / S) - 3);
     const x1 = Math.min(world.width - 1, Math.ceil(r / S) + 3);
     const y1 = Math.min(world.height - 1, Math.ceil(b / S) + 5);
     const crowns: [number, number, number][] = [];
+    const decor = animatedDecor();
+    this.exposedChimes.length = 0;
     for (let ty = y0; ty <= y1; ty++) {
       for (let tx = x0; tx <= x1; tx++) {
         const fg = world.getFg(tx, ty);
@@ -233,6 +251,15 @@ export class TileRenderer {
           }
         }
         if (!fg) continue;
+        const anim = decor.get(fg);
+        if (anim) {
+          // Animated decorations draw once, from their top-left cell.
+          if (world.getFrame(tx, ty) === 0) {
+            renderDecor(g, world, anim, tx, ty, env);
+            if (anim === 'wind_chime' && exposedToWind(world, tx, ty, 2)) this.exposedChimes.push([tx * S + 8, ty * S + 16]);
+          }
+          continue;
+        }
         if (fg === T.treetop) crowns.push([tx, ty, world.getFrame(tx, ty)]);
         else if (fg === T.torch) this.flame(g, tx * S + 8, ty * S + 5, tick, tx, 1);
         else if (fg === 69) {
@@ -251,6 +278,42 @@ export class TileRenderer {
       const hgt = c.height * k;
       g.drawImage(c, tx * S + 8 - w / 2 + sway, ty * S + 16 - hgt + 10 * k, w, hgt);
     }
+  }
+
+  /**
+   * Coloured sunbeams under sunlit stained glass, drawn after lighting so
+   * they glow. Beams slant with the sun: east in the morning, west at dusk.
+   */
+  renderSunbeams(g: CanvasRenderingContext2D, world: World, l: number, t: number, r: number, b: number, daylight: number, hour: number): void {
+    if (daylight <= 0.05) return;
+    const x0 = Math.max(0, Math.floor(l / S) - 8);
+    const x1 = Math.min(world.width - 1, Math.ceil(r / S) + 8);
+    const y0 = Math.max(0, Math.floor(t / S) - 10);
+    const y1 = Math.min(world.height - 1, Math.ceil(b / S));
+    const tinted = TileRegistry.tinted;
+    const slant = Math.max(-0.7, Math.min(0.7, (12 - hour) / 8));
+    const prev = g.globalCompositeOperation;
+    g.globalCompositeOperation = 'lighter';
+    for (let tx = x0; tx <= x1; tx++) {
+      const ty = world.skyTop[tx];
+      if (ty < y0 || ty > y1) continue;
+      const fg = world.getFg(tx, ty);
+      if (!tinted[fg]) continue;
+      const def = TileRegistry.get(fg);
+      const col = def.texture.accent === 'prism' ? PRISM_BEAM[(((tx + ty) % 6) + 6) % 6] : def.texture.base;
+      // Beam length: until the first solid tile below (max 10).
+      let len = 0;
+      while (len < 10 && !world.isSolid(Math.floor(tx + (slant * (len + 1))), ty + 1 + len)) len++;
+      if (!len) continue;
+      g.fillStyle = col;
+      for (let i = 0; i < len * S; i += 2) {
+        const k = 1 - i / (len * S);
+        g.globalAlpha = 0.3 * daylight * k * (0.85 + 0.15 * Math.sin(i * 0.15 + tx));
+        g.fillRect(Math.round(tx * S + slant * i), (ty + 1) * S + i, S, 2);
+      }
+    }
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = prev;
   }
 
   private flame(g: CanvasRenderingContext2D, x: number, y: number, tick: number, seed: number, scale: number): void {

@@ -51,6 +51,7 @@ export function breakTile(ctx: GameContext, x: number, y: number, o: BreakOpts =
   } else if (def.size) {
     const [ox, oy] = removeObjectRaw(w, x, y);
     if (id === T.chest) w.chests.delete(w.chestKey(ox, oy));
+    w.paintings.delete(w.chestKey(ox, oy));
     if (id === T.pot) {
       if (drop) {
         const deep = oy > w.layers.cavernY;
@@ -153,8 +154,22 @@ function supported(ctx: GameContext, x: number, y: number, id: number, def: Tile
       }
       return solidOrPlat(ctx, x, y + 1);
     }
-    case 'ceiling':
+    case 'ceiling': {
+      if (def.size) {
+        // Hanging objects: something solid (or a platform) above the top row.
+        const [ox, oy] = w.objectOrigin(x, y);
+        for (let xx = ox; xx < ox + def.size[0]; xx++) if (w.isSolid(xx, oy - 1) || TileRegistry.platform[w.getFg(xx, oy - 1)] === 1) return true;
+        return false;
+      }
       return w.isSolid(x, y - 1) || w.getFg(x, y - 1) === id;
+    }
+    case 'wall': {
+      // Wall-hung objects need a background wall behind every cell.
+      const [ox, oy] = def.size ? w.objectOrigin(x, y) : [x, y];
+      const [sw, sh] = def.size ?? [1, 1];
+      for (let yy = oy; yy < oy + sh; yy++) for (let xx = ox; xx < ox + sw; xx++) if (w.getWall(xx, yy) === 0) return false;
+      return true;
+    }
     case 'attach':
       return (
         w.getWall(x, y) !== 0 ||
@@ -191,6 +206,14 @@ export function canPlace(ctx: GameContext, x: number, y: number, tileId: number)
   }
   if (def.support && def.support !== 'none') {
     if (!def.size && !supported(ctx, x, y, tileId, def)) return false;
+    if (def.size && def.support === 'ceiling') {
+      let hung = false;
+      for (let xx = x; xx < x + sw; xx++) if (w.isSolid(xx, y - 1) || TileRegistry.platform[w.getFg(xx, y - 1)] === 1) hung = true;
+      if (!hung) return false;
+    }
+    if (def.size && def.support === 'wall') {
+      for (let yy = y; yy < y + sh; yy++) for (let xx = x; xx < x + sw; xx++) if (w.getWall(xx, yy) === 0) return false;
+    }
     return true;
   }
   // Plain blocks need a neighbouring tile or wall to attach to.

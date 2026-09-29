@@ -266,3 +266,16 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .gset { border-bottom: 1px dashed #c8a878; padding: 6px 0; }
 .gset.done { background: rgba(120,160,60,0.12); }
 .gcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 16px; margin: 6px 0; }
+
+/* ---------- Painting editor ---------- */
+.paint-panel { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); pointer-events: auto; z-index: 30; max-width: calc(100vw / var(--ui-scale) - 20px); }
+.paint-panel * { pointer-events: auto; }
+.paint-stage { position: relative; align-self: center; line-height: 0; border: 3px solid #2a1a0c; box-shadow: 0 0 0 2px #8b5a2b; }
+.paint-stage::after { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, rgba(0,0,0,0.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.12) 1px, transparent 1px); background-size: var(--cell) var(--cell); }
+.paint-canvas, .paint-preview { image-rendering: pixelated; display: block; cursor: crosshair; }
+.paint-preview { cursor: default; }
+.paint-preview-frame { border: 2px solid #8b5a2b; line-height: 0; }
+.paint-palette { display: grid; grid-template-columns: repeat(16, 22px); gap: 3px; justify-content: center; }
+.paint-swatch { width: 22px; height: 22px; border: 2px solid #1a1420; cursor: pointer; box-sizing: border-box; }
+.paint-swatch.active { outline: 2px solid #f5cf3c; outline-offset: 1px; }
+.paint-tools .btn { min-width: 52px; }

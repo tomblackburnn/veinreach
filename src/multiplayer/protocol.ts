@@ -6,10 +6,10 @@
  */
 import type { Appearance } from '../entities/player/Appearance';
 import type { ExportedChunk } from '../save/serialization';
-import type { ChestData } from '../world/WorldState';
+import type { ChestData, PaintingData } from '../world/WorldState';
 import type { WorldSizeKey } from '../core/config';
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 export const MAX_PLAYERS = 8;
 
 export interface PlayerInfo {
@@ -39,6 +39,7 @@ export type ClientMsg =
   | { t: 'tiles'; changes: number[] }
   | { t: 'liquid'; x: number; y: number; amount: number; type: number }
   | { t: 'chest'; chest: ChestData }
+  | { t: 'paint'; painting: PaintingData }
   | { t: 'flag'; flag: string }
   | { t: 'chat'; text: string };
 
@@ -49,6 +50,7 @@ export type ServerMsg =
       world: { name: string; seed: string; size: WorldSizeKey };
       chunks: ExportedChunk[];
       chests: ChestData[];
+      paintings: PaintingData[];
       time: number;
       day: number;
       flags: string[];
@@ -63,6 +65,7 @@ export type ServerMsg =
   | { t: 'tiles'; id: number; changes: number[] }
   | { t: 'liquid'; x: number; y: number; amount: number; type: number }
   | { t: 'chest'; chest: ChestData }
+  | { t: 'paint'; painting: PaintingData }
   | { t: 'flag'; flag: string }
   | { t: 'chat'; id: number; name: string; text: string }
   | { t: 'time'; time: number; day: number };

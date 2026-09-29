@@ -45,12 +45,19 @@ import { Minimap } from '../ui/Minimap';
 import { DebugConsole } from '../ui/DebugConsole';
 import { CreativePanel } from '../ui/panels/CreativePanel';
 import { GuidePanel } from '../ui/panels/GuidePanel';
+import { PaintPanel } from '../ui/panels/PaintPanel';
+import { interactPlanter } from '../world/decor';
+import { isCanvasTile } from '../world/paintings';
+import { checkRoom, comfortTier, COMFORT_TIERS } from '../world/housing';
 import { renderHazards } from '../entities/bosses/hazards';
 import { ObjectSprites } from '../rendering/sprites/objectSprites';
 import { TileTextures } from '../rendering/sprites/tileTextures';
 import type { NetworkManager } from '../multiplayer/NetworkManager';
 import type { NPC } from '../entities/npcs/NPC';
 import type { ChestData } from '../world/WorldState';
+
+/** Pentatonic pitch multipliers for wind chimes. */
+const CHIME_NOTES = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3, 2];
 
 export interface SessionInit {
   host: GameHost;
@@ -96,6 +103,7 @@ export class GameSession implements GameContext {
   readonly debug: DebugConsole;
   readonly creative: CreativePanel;
   readonly guide: GuidePanel;
+  readonly paint: PaintPanel;
   readonly net: NetworkManager | null;
   readonly ui: UIHooks;
   tick = 0;
@@ -106,6 +114,10 @@ export class GameSession implements GameContext {
   private unsealGen: Generator<number> | null = null;
   private lastHour = 0;
   private lightFrame = 0;
+  /** Room the player was last found in (for comfort messages). */
+  private comfortRoom: number | null = null;
+  private comfortTierKey = 'bare';
+  private planterId = TileRegistry.id('planter');
   private disposed = false;
   private unsubscribers: (() => void)[] = [];
   showChunks = false;
@@ -149,6 +161,7 @@ export class GameSession implements GameContext {
       this.world.chests.clear();
       for (const c of st.chests) this.world.chests.set(this.world.chestKey(c.x, c.y), c);
     }
+    for (const p of st.paintings) this.world.paintings.set(this.world.chestKey(p.x, p.y), p);
     // Player
     applyCharacter(this.player, this.character);
     const spawn = st.playerSpawns[this.character.id];
@@ -172,12 +185,14 @@ export class GameSession implements GameContext {
     this.debug = new DebugConsole(this);
     this.creative = new CreativePanel(this);
     this.guide = new GuidePanel(this);
+    this.paint = new PaintPanel(this);
     this.ui = {
       openChest: (c: ChestData) => self.inventory.openChest(c),
       openNPC: (n: NPC) => self.npcPanel.open(n),
       closeWorldPanels: () => {
         self.inventory.closeChest();
         self.npcPanel.close();
+        self.paint.close();
       },
       bossIntro: (name, title) => self.hud.bossIntro(name, title),
       banner: (t, s, c) => self.hud.banner(t, s, c),
@@ -304,8 +319,11 @@ export class GameSession implements GameContext {
       void this.save('autosave');
     }
     this.net?.update(this);
+    if (this.tick % 60 === 0) this.updateComfort();
+    this.playChimes();
     this.inventory.update();
     this.npcPanel.update();
+    this.paint.update();
     this.creative.update();
     this.hud.update();
     this.minimap.update();
@@ -318,6 +336,7 @@ export class GameSession implements GameContext {
     if (inp.wasPressed('pause')) {
       if (this.hud.mapOpen) this.hud.toggleMap(false);
       else if (this.guide.isOpen) this.guide.close();
+      else if (this.paint.isOpen) this.paint.close();
       else if (this.creative.isOpen) this.creative.close();
       else if (this.npcPanel.isOpen) this.npcPanel.close();
       else if (this.inventory.isOpen) this.inventory.close();
@@ -326,6 +345,7 @@ export class GameSession implements GameContext {
     if (this.paused) return;
     if (inp.wasPressed('inventory')) {
       if (this.npcPanel.isOpen) this.npcPanel.close();
+      if (this.paint.isOpen) this.paint.close();
       this.inventory.toggle();
     }
     if (inp.wasPressed('map')) this.hud.toggleMap();
@@ -405,6 +425,14 @@ export class GameSession implements GameContext {
       }
       return true;
     }
+    if (id === this.planterId) return interactPlanter(this, tx, ty);
+    if (isCanvasTile(id)) {
+      if (this.world.getWall(tx, ty) === 0) return false;
+      if (this.inventory.isOpen) this.inventory.close();
+      this.paint.open(tx, ty);
+      this.audio.play('cloth', { x: wx, y: wy });
+      return true;
+    }
     if (id === T.bed) {
       const [ox, oy] = this.world.objectOrigin(tx, ty);
       p.spawnX = ox + 1;
@@ -416,6 +444,37 @@ export class GameSession implements GameContext {
       return true;
     }
     return false;
+  }
+
+  /**
+   * Comfort: standing in an enclosed, walled room grants a buff by its
+   * decoration tier, and Cozy+ rooms send you off with Hearthglow.
+   */
+  private updateComfort(): void {
+    const p = this.player;
+    if (p.dead) return;
+    const r = checkRoom(this.world, p.tileX, Math.floor(p.cy / 16));
+    const inRoom = !!r.enclosed && !!r.walled;
+    const tier = inRoom ? comfortTier(r.comfort ?? 0) : null;
+    for (const t of COMFORT_TIERS) if (t.buff && t !== tier) p.buffs.remove(t.buff);
+    if (tier?.buff) p.buffs.add(tier.buff, 150);
+    if (tier?.glow) p.buffs.add('hearthglow', tier.glow);
+    const key = inRoom ? r.key ?? null : null;
+    if (tier && key !== null && tier.key !== 'bare') {
+      if (key !== this.comfortRoom) this.message(`${tier.name} room · Comfort ${r.comfort}`, '#ffd8a0');
+      else if (tier.key !== this.comfortTierKey) this.message(`This room is now ${tier.name} · Comfort ${r.comfort}`, '#ffd8a0');
+    }
+    this.comfortRoom = key;
+    this.comfortTierKey = tier?.key ?? 'bare';
+  }
+
+  /** Wind chimes out in the open ring now and then, more often in stronger wind. */
+  private playChimes(): void {
+    if (this.tick % 6 !== 0) return;
+    const gust = Math.abs(this.weather.wind);
+    for (const [x, y] of this.tiles.exposedChimes) {
+      if (Math.random() < gust * 0.12) this.audio.play('chime', { x, y, pitch: CHIME_NOTES[Math.floor(Math.random() * CHIME_NOTES.length)] });
+    }
   }
 
   private updateBiomeAndMusic(): void {
@@ -517,6 +576,7 @@ export class GameSession implements GameContext {
       st.playerPositions[p.charId] = { x: p.tileX, y: Math.floor((p.bottom - 1) / 16) };
       st.structures = this.world.structures;
       st.chests = [...this.world.chests.values()];
+      st.paintings = [...this.world.paintings.values()];
       st.drops = this.entities.drops.slice(0, 300).map((d) => ({ id: d.stack.id, count: d.stack.count, x: d.cx, y: d.cy }));
       this.record.meta.lastPlayed = Date.now();
       this.record.meta.version = SAVE_VERSION;
@@ -552,6 +612,7 @@ export class GameSession implements GameContext {
     this.debug.dispose();
     this.creative.dispose();
     this.guide.dispose();
+    this.paint.dispose();
   }
 
   // ---------------- Rendering ----------------
@@ -582,7 +643,7 @@ export class GameSession implements GameContext {
     const b = cam.bottom + 16;
     this.tiles.render(g, this.world, l, t, r, b);
     this.tiles.renderCracks(g, (fn) => this.mining.forEachDamaged(fn, this.world));
-    this.tiles.renderDynamic(g, this.world, l, t, r, b, this.tick);
+    this.tiles.renderDynamic(g, this.world, l, t, r, b, { tick: this.tick, wind: this.weather.wind, hour: this.time.hour, moonPhase: this.time.moonPhase });
     this.entities.render(g, this, l, t, r, b);
     this.particles.render(g, l, t, r, b);
     this.renderCursor(g);
@@ -595,6 +656,7 @@ export class GameSession implements GameContext {
       this.lighting.compute(this.world, l, t, r, b, sky, lights, { nightVision: p.stats.nightVision > 0 });
     }
     this.lighting.render(g, this.settings.smoothLighting);
+    this.tiles.renderSunbeams(g, this.world, l, t, r, b, this.time.daylight, this.time.hour);
 
     // Post-light overlays (always readable).
     for (const boss of this.bosses.active) renderHazards(g, boss.hazards, this.tick);

@@ -3,7 +3,7 @@
  *
  *   npm run server -- --port 7777 --world "My World" --seed 12345 --size medium
  *
- * Shares terrain, block edits, chests, time, progression flags and chat
+ * Shares terrain, block edits, chests, paintings, time, progression flags and chat
  * between up to 8 players. Creatures are simulated client-side.
  */
 import { WebSocketServer, WebSocket } from 'ws';
@@ -78,7 +78,7 @@ wss.on('connection', (ws) => {
         c.info = { id: c.id, name: c.name, appearance: sanitizeAppearance(m.appearance), x: host.spawnX * 16, y: host.spawnY * 16 };
         send(ws, {
           t: 'welcome', id: c.id, world: { name: host.name, seed: host.seed, size: host.size }, chunks: host.modifiedChunks(),
-          chests: [...host.chests.values()], time: host.time, day: host.day, flags: [...host.flags], spawnX: host.spawnX, spawnY: host.spawnY,
+          chests: [...host.chests.values()], paintings: [...host.paintings.values()], time: host.time, day: host.day, flags: [...host.flags], spawnX: host.spawnX, spawnY: host.spawnY,
           players: [...clients.values()].filter((o) => o.info && o.id !== c.id).map((o) => o.info!),
         });
         broadcast({ t: 'join', player: c.info }, c.id);
@@ -110,6 +110,11 @@ wss.on('connection', (ws) => {
       case 'chest': {
         const chest = host.validChest(m.chest);
         if (chest) broadcast({ t: 'chest', chest }, c.id);
+        break;
+      }
+      case 'paint': {
+        const painting = host.validPainting(m.painting, c.tx, c.ty);
+        if (painting) broadcast({ t: 'paint', painting }, c.id);
         break;
       }
       case 'flag':

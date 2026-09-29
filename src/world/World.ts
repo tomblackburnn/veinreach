@@ -1,7 +1,7 @@
 import { CHUNK_SIZE } from '../core/config';
 import { Chunk } from './Chunk';
 import { TileRegistry } from './TileRegistry';
-import type { ChestData, StructureInfo } from './WorldState';
+import type { ChestData, PaintingData, StructureInfo } from './WorldState';
 
 const SHIFT = Math.log2(CHUNK_SIZE) | 0;
 const MASK = CHUNK_SIZE - 1;
@@ -36,6 +36,8 @@ export class World {
   layers: WorldLayers;
 
   readonly chests = new Map<string, ChestData>();
+  /** Painted canvases keyed by object origin ("x,y"). Blank canvases have no entry. */
+  readonly paintings = new Map<string, PaintingData>();
   structures: StructureInfo[] = [];
 
   /** While true, edits don't flag chunks modified or fire listeners. */
@@ -212,7 +214,7 @@ export class World {
   updateSkyTop(x: number): void {
     if (x < 0 || x >= this.width) return;
     let y = 0;
-    while (y < this.height && TileRegistry.opaque[this.getFg(x, y)] !== 1) y++;
+    while (y < this.height && TileRegistry.skyBlock[this.getFg(x, y)] !== 1) y++;
     this.skyTop[x] = y;
   }
 
@@ -230,6 +232,16 @@ export class World {
 
   chestKey(x: number, y: number): string {
     return `${x},${y}`;
+  }
+
+  getPaintingAt(x: number, y: number): PaintingData | undefined {
+    const [ox, oy] = this.objectOrigin(x, y);
+    return this.paintings.get(this.chestKey(ox, oy));
+  }
+
+  /** Force a redraw of a rectangle of tiles without counting it as a world edit. */
+  invalidateRender(x: number, y: number, w = 1, h = 1): void {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) this.markRenderDirty(xx, yy);
   }
 
   getChestAt(x: number, y: number): ChestData | undefined {

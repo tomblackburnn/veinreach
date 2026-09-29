@@ -158,6 +158,29 @@ function glass(p: Pix, t: TextureSpec): void {
   p.line(5, 12, 10, 7, t.light ?? '#ffffff');
 }
 
+const PRISM_BANDS = ['#ff6a6a', '#ffb04a', '#f5e04a', '#6ad06a', '#5a9aff', '#b070ff'];
+
+/** Leaded stained glass: translucent coloured panes split by dark came lines. */
+function stained(p: Pix, t: TextureSpec, v: number): void {
+  const g = p.g;
+  g.globalAlpha = 0.62;
+  if (t.accent === 'prism') {
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) p.px(x, y, PRISM_BANDS[Math.floor((x + y) / 6) % PRISM_BANDS.length]);
+  } else {
+    p.rect(0, 0, S, S, t.base);
+    // Slight colour variation per pane.
+    g.globalAlpha = 0.25;
+    p.rect(1, 1, 7, 7, t.light ?? '#ffffff');
+    p.rect(8, 8, 7, 7, shade(t.base, 0.7));
+  }
+  g.globalAlpha = 1;
+  const lead = t.dark ?? '#241a22';
+  p.box(0, 0, S, S, lead);
+  if (v % 2 === 0) p.line(0, 0, 15, 15, lead).line(15, 0, 0, 15, lead);
+  else p.rect(7, 0, 2, S, lead).rect(0, 7, S, 2, lead);
+  p.px(3, 2, 'rgba(255,255,255,0.8)').px(2, 3, 'rgba(255,255,255,0.6)').px(12, 10, 'rgba(255,255,255,0.35)');
+}
+
 function ash(p: Pix, t: TextureSpec, v: number, salt: number): void {
   soil(p, t, v, salt);
   for (let i = 0; i < 3; i++) p.px(Math.floor(r(i, 20, v, salt) * S), Math.floor(r(i, 21, v, salt) * S), '#8a3a1a');
@@ -199,6 +222,9 @@ export function paintTexture(p: Pix, t: TextureSpec, v: number, salt: number): v
       break;
     case 'ash':
       ash(p, t, v, salt);
+      break;
+    case 'stained':
+      stained(p, t, v);
       break;
     case 'sprite':
       break;

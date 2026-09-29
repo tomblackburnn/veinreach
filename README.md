@@ -28,7 +28,7 @@ A full generated world (medium) rendered from its map colours:
 - **Player controller** with acceleration, coyote-time jumps, variable jump height, double jump, dash, rope climbing, fall damage, liquids, knockback and invulnerability frames.
 - **Inventory:** 50 slots with a 10-slot hotbar, plus 3 armour, 5 accessory, 4 ammo and a trash slot.
   - Drag and drop, stack splitting, shift-click, ctrl-click to trash, sorting, quick-stack and tooltips.
-- **Crafting:** 170 recipes across 7 crafting stations, detected automatically from nearby tiles. Some are gated on progression.
+- **Crafting:** 191 recipes across 8 crafting stations, detected automatically from nearby tiles. Some are gated on progression.
 - **Combat:**
   - **Weapon types:** melee swings, spears, boomerangs, bows, crossbows, guns, wands, staves, tomes and summoned minions.
   - **Mechanics:** crits, knockback, status effects, explosions, homing and piercing projectiles, and damage numbers.
@@ -41,6 +41,7 @@ A full generated world (medium) rendered from its map colours:
 - **World events:** Gloamtide, Rustbound Raid (an invasion with a progress bar), Starfall (meteor crashes) and Veilstorm.
 - **Weather:** rain, storms with lightning, snow and sandstorms, expressed per biome.
 - **Seven NPCs** with housing validation, arrival conditions, dialogue, progression-based shops, a healer, selling and buyback.
+- **Hearth & Home decorating** (see [Decorating](#decorating-hearth--home)): rooms earn a **Comfort** score that grants buffs and cheaper shops, **paintable canvases** with an in-game pixel editor, **stained glass that tints light** and casts coloured sunbeams, **planters** you grow and harvest, and **weather-aware decor** (wind chimes that ring in storms, a weathervane, pennants) plus animated pieces like a fountain, an orrery that shows the moon phase and an hourglass that turns at dawn and dusk.
 - **Day/night cycle** with sky gradients, sun, moon phases and stars. Tile-based RGB light propagation covers torches, lava, glowing ores and entity lights.
 - **Minimap and full world map** that show only explored terrain, with markers.
 - **Saves in IndexedDB:** characters and worlds are stored separately, with autosave and JSON export/import. Imports are validated.
@@ -106,6 +107,25 @@ Every new character starts with the **Delver's Almanac**. Press **G** or use the
 6. **Solmara, the Unmade Star.** Raise an *Astral Sigil* to the night sky. This is the final boss, with three phases and an arena.
 
 Housing rule: an NPC room needs player-placed background walls, a door (or platform), a light source, a table or workbench, a chair, and 40–750 enclosed tiles.
+
+## Decorating (Hearth & Home)
+
+Build an **Artisan's Bench** at a Workbench (12 Timber, 6 Stone, 2 torches). It crafts every decoration. The Almanac's *Hearth & Home* chapter lists them all with recipes.
+
+- **Comfort.** Every enclosed, walled room has a Comfort score. Each *kind* of decoration counts once, so variety beats repetition. A blooming planter adds +3, and each painted canvas adds +4 (up to three per room).
+
+  | Tier | Comfort | While inside | Townsfolk living here |
+  |---|---|---|---|
+  | Bare | 0+ | — | — |
+  | Homely | 10+ | Snug: +1 life regen | prices −3% |
+  | Cozy | 20+ | Cozy: +2 regen, +5% speed; 3 min of Hearthglow when you leave | prices −8% |
+  | Lavish | 35+ | +3 regen, +2 defense, +10% mining; 6 min of Hearthglow | prices −15% |
+
+  Hearthglow gives +1 life regen and +5% damage. A townsperson's **Housing** button shows their room's comfort and what the next tier needs.
+- **Painting.** Hang a Small (14×14) or Grand (30×22) Canvas on a background wall and right-click it. Paint with a 16-colour palette using brush, fill, colour-pick, undo and clear. Paintings are saved with the world and shared in multiplayer.
+- **Stained glass** comes in Rose, Amber, Verdant, Azure and Violet, plus Prism Glass that makes a rainbow. Light passing through it takes its colour, and sunlit panes cast slanted sunbeams that follow the time of day.
+- **Planters.** Plant a Wildflower Petal, Glowshroom, Emberbloom or Seedling. It grows while you're nearby; right-click a bloom to harvest it (a Seedling becomes a bonsai).
+- **Living decor.** Wind Chimes, Festival Pennants and the Weathervane react to the real wind: they sway hard outdoors, barely stir indoors, and chimes ring in storms. There is also a Hanging Lantern, Wisp Jar, Gloop Lamp, Stone Fountain, Tide Hourglass (turns over at 6:00 and 18:00), Starlit Orrery (its moon shows tonight's phase) and a Woven Rug (its pattern depends on where you lay it).
 
 ## Architecture
 
@@ -174,7 +194,7 @@ Then choose **Multiplayer (Experimental)** in the main menu and connect to `ws:/
 What is synchronised (2–8 players):
 - Terrain from the shared seed, plus server-held modifications.
 - Block and wall edits. The server validates them (range, bounds, ids, rate limits), stores them and relays them to other players.
-- Chests (validated), bucket liquids, time of day, world progression flags (a boss kill unlocks progression for everyone, including the Unsealing) and chat.
+- Chests and paintings (validated), bucket liquids, time of day, world progression flags (a boss kill unlocks progression for everyone, including the Unsealing) and chat.
 - Player avatars: position, animation, armour and held light.
 - The server saves the world to `server/data/<world>.json` every minute and on shutdown.
 

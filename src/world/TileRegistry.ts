@@ -20,6 +20,13 @@ class TileRegistryImpl {
   lightG = new Float32Array(0);
   lightB = new Float32Array(0);
   emits = new Uint8Array(0);
+  /** Stained glass: per-channel light multipliers (1 = untinted). */
+  tinted = new Uint8Array(0);
+  tintR = new Float32Array(0);
+  tintG = new Float32Array(0);
+  tintB = new Float32Array(0);
+  /** Stops direct skylight: opaque blocks and stained glass (which tints it instead). */
+  skyBlock = new Uint8Array(0);
 
   constructor() {
     this.load(TILE_DEFS, WALL_DEFS);
@@ -37,6 +44,11 @@ class TileRegistryImpl {
     this.lightG = new Float32Array(maxId);
     this.lightB = new Float32Array(maxId);
     this.emits = new Uint8Array(maxId);
+    this.tinted = new Uint8Array(maxId);
+    this.tintR = new Float32Array(maxId).fill(1);
+    this.tintG = new Float32Array(maxId).fill(1);
+    this.tintB = new Float32Array(maxId).fill(1);
+    this.skyBlock = new Uint8Array(maxId);
     for (const t of tiles) {
       if (this.defs[t.id]) console.warn(`[TileRegistry] duplicate tile id ${t.id} (${t.key})`);
       if (this.byKey.has(t.key)) console.warn(`[TileRegistry] duplicate tile key ${t.key}`);
@@ -46,6 +58,11 @@ class TileRegistryImpl {
       this.platform[t.id] = t.platform ? 1 : 0;
       this.opaque[t.id] = t.solid && !t.transparent ? 1 : 0;
       this.cuttable[t.id] = t.cuttable ? 1 : 0;
+      if (t.tint) {
+        this.tinted[t.id] = 1;
+        [this.tintR[t.id], this.tintG[t.id], this.tintB[t.id]] = t.tint;
+      }
+      this.skyBlock[t.id] = this.opaque[t.id] || this.tinted[t.id] ? 1 : 0;
       if (t.light) {
         this.emits[t.id] = 1;
         [this.lightR[t.id], this.lightG[t.id], this.lightB[t.id]] = t.light;

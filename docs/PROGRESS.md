@@ -7,7 +7,7 @@ _Last updated: 2026-09-29_
 | Check | Status |
 |---|---|
 | `npm run typecheck` (client + server) | ✅ passing |
-| `npm run test` | ✅ 68 tests passing (unit + headless simulation) |
+| `npm run test` | ✅ 76 tests passing (unit + headless simulation) |
 | `npm run build` | ✅ passing (~440 kB JS, ~140 kB gzipped) |
 | Browser runtime | ✅ Verified manually in Chromium: menus, character/world creation, generation, mining, placing, crafting, chests, persistence across reload, all five bosses rendered and fighting. No console errors. |
 
@@ -17,18 +17,18 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 | Content | Count |
 |---|---|
-| Tiles / walls | 77 / 20 |
-| Items | 249 (33 weapons: 14 melee, 9 ranged, 7 magic, 3 summon) |
+| Tiles / walls | 97 / 20 |
+| Items | 271 (33 weapons: 14 melee, 9 ranged, 7 magic, 3 summon) |
 | Tools and utilities | 20 |
 | Armour | 36 pieces in 12 sets with set bonuses |
 | Accessories | 23 |
 | Consumables | 17, plus 7 ammo types |
-| Recipes | 170 across 7 stations |
+| Recipes | 191 across 8 stations |
 | Enemies | 31 (28 spawn naturally or in events, 3 boss adds) using 14 AI archetypes |
 | Bosses | 5 |
 | NPCs | 7 |
 | Biomes | 12 (8 world biomes + underground, keep, sky isles, Shardblight) |
-| Buffs / debuffs | 18 |
+| Buffs / debuffs | 22 |
 | Projectiles | 41 |
 | Loot tables | 41 |
 | World events | 4 |
@@ -48,6 +48,7 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 - 5 bosses with phases, telegraphs, hazards, adds, intros, music and death sequences; BossManager summoning rules.
 - Progression flags, the Unsealing world transformation, 4 world events, weather.
 - NPC housing validation, arrivals, dialogue, shops (buy/sell/buyback), healer.
+- Hearth & Home: room comfort tiers (buffs, Hearthglow, shop discounts), canvases with a pixel editor (saved and synced), stained glass that tints light plus sunbeams, planters, and wind/time-reactive animated decor.
 - IndexedDB saves, autosave, export/import with validation, memory fallback.
 - Menus, HUD, boss bar, event bar, banners, minimap and world map, pause menu, settings with key rebinding, debug console.
 - Procedural SFX and generative music with biome, event and boss switching.
@@ -67,6 +68,16 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Hearth & Home decor update**:
+  - The **Artisan's Bench** station and 19 new decorations.
+  - **Comfort** scoring: each kind of decoration counts once. Tiers grant Snug/Cozy/Lavish buffs and a lingering Hearthglow, and give townsfolk shop discounts of up to 15%.
+  - Paintable **canvases** with an in-game pixel editor. Paintings persist in saves and on the server, and sync live in multiplayer (protocol v2).
+  - **Stained glass** filters light per channel (the lighting now uses per-channel decay), and sunlit panes cast coloured sunbeams.
+  - **Planters** you grow and harvest.
+  - **Weather-aware decor:** chimes, a weathervane and pennants follow the wind, and chimes ring in storms. There's also an animated fountain, lamps, an hourglass and an orrery.
+  - A new Almanac chapter covers all of this.
+- Tables now have their top at the top of the sprite, so lamps and jars sit on them instead of floating above.
+- Obtainability audit: all 270 obtainable items are reachable.
 - Housing minimum lowered to 40 open tiles (from 60); the "too small" message shows the tile count.
 - The NPC dialog/shop now docks under the backpack while the inventory is open (and sits in that spot otherwise), so it never covers Equipment or Crafting. The multiplayer chat box moved to the bottom-centre.
 - **Housing Deed** (creative item): builds a complete, valid NPC house at the cursor. It refuses to overwrite furniture or chests. Items marked `cheat` are excluded from the obtainability audit.

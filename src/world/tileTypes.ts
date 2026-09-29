@@ -2,7 +2,8 @@
 
 export type ToolKind = 'pickaxe' | 'axe' | 'hammer' | 'any';
 export type TileSound = 'soil' | 'stone' | 'wood' | 'plant' | 'glass' | 'metal' | 'crystal' | 'cloth';
-export type SupportRule = 'none' | 'floor' | 'ceiling' | 'attach';
+/** 'wall': every cell needs a background wall behind it (paintings). */
+export type SupportRule = 'none' | 'floor' | 'ceiling' | 'attach' | 'wall';
 export type FurnitureTag = 'chair' | 'table' | 'door' | 'light' | 'bed' | 'chest' | 'station';
 
 /** Procedural texture recipe. Colours are hex strings. */
@@ -20,6 +21,7 @@ export type TextureKind =
   | 'glass'
   | 'moss'
   | 'ash'
+  | 'stained'
   | 'sprite';
 
 export interface TextureSpec {
@@ -77,6 +79,10 @@ export interface TileDef {
   overlaySprite?: boolean;
   /** Blocks do not draw exposed-edge outlines (e.g. decorations). */
   noEdges?: boolean;
+  /** Comfort points this kind of object adds to a room (each kind counts once). */
+  comfort?: number;
+  /** Stained glass: multiplies light passing through it, per channel. */
+  tint?: [number, number, number];
 }
 
 export interface WallDef {

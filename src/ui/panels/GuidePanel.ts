@@ -14,8 +14,10 @@ import { BIOMES, type BiomeKey } from '../../data/biomes';
 import { WORLD_EVENTS } from '../../systems/WorldEventSystem';
 import { TileRegistry } from '../../world/TileRegistry';
 import { shade } from '../../utils/color';
+import { COMFORT_TIERS, BLOOM_BONUS, PAINTING_BONUS, MAX_PAINTINGS } from '../../world/housing';
+import { PLANTER_PLANTS } from '../../world/decor';
 
-type Chapter = 'welcome' | 'bosses' | 'progression' | 'loadouts' | 'armor' | 'ores' | 'stations' | 'npcs' | 'world';
+type Chapter = 'welcome' | 'bosses' | 'progression' | 'loadouts' | 'armor' | 'ores' | 'stations' | 'npcs' | 'home' | 'world';
 
 const CHAPTERS: [Chapter, string][] = [
   ['welcome', 'Welcome'],
@@ -26,11 +28,12 @@ const CHAPTERS: [Chapter, string][] = [
   ['ores', 'Ores & Tools'],
   ['stations', 'Crafting Stations'],
   ['npcs', 'Townsfolk'],
+  ['home', 'Hearth & Home'],
   ['world', 'Biomes & Events'],
 ];
 
 const STATION_NAMES: Record<string, string> = {
-  workbench: 'Workbench', furnace: 'Smelter', anvil: 'Anvil', alembic: 'Alembic Bench', runescribe: 'Runescribe Desk', aetherforge: 'Aetherforge', starloom: 'Starloom',
+  workbench: 'Workbench', artisan: 'Artisan’s Bench', furnace: 'Smelter', anvil: 'Anvil', alembic: 'Alembic Bench', runescribe: 'Runescribe Desk', aetherforge: 'Aetherforge', starloom: 'Starloom',
 };
 
 /** The Delver's Almanac: an in-game guidebook driven by live progression. */
@@ -96,6 +99,7 @@ export class GuidePanel {
       ores: () => this.ores(),
       stations: () => this.stations(),
       npcs: () => this.npcs(),
+      home: () => this.home(),
       world: () => this.world(),
     };
     fns[this.chapter]();
@@ -277,6 +281,55 @@ export class GuidePanel {
         h('div', { class: 'gline' }, h('span', { class: 'gmuted' }, 'Sells: '), ...n.shop.slice(0, 8).map((e) => this.item(e.item))),
       ));
     }
+  }
+
+  private home(): void {
+    const tierPerks: Record<string, string> = {
+      bare: 'No bonus.',
+      homely: 'Snug while inside (+1 life regen). Resident prices −3%.',
+      cozy: 'Cozy while inside (+2 life regen, +5% speed), and 3 minutes of Hearthglow (+1 regen, +5% damage) when you head out. Resident prices −8%.',
+      lavish: 'Lavish Comforts while inside (+3 life regen, +2 defense, +10% mining), and 6 minutes of Hearthglow. Resident prices −15%.',
+    };
+    const decor = ['artisan_bench', 'rose_glass', 'prism_glass', 'canvas_small', 'canvas_wide', 'planter', 'rug', 'wind_chime', 'weathervane', 'pennant', 'hanging_lantern', 'wisp_jar', 'gloop_lamp', 'hourglass', 'fountain', 'orrery'];
+    const comfortOf = (id: string) => TileRegistry.get(TileRegistry.id(ItemRegistry.get(id).placeTile!)).comfort ?? 0;
+    this.page.append(
+      this.h2('Hearth & Home'),
+      this.p('Every enclosed room with player-placed walls has a Comfort score. Each kind of decoration counts once, so variety beats repetition: ten torches score the same as one.'),
+      h('div', { class: 'gbox' },
+        h('b', {}, 'Comfort tiers'),
+        ...COMFORT_TIERS.map((t) => h('div', { style: 'margin:3px 0' }, h('b', {}, `${t.name} (${t.min}+)`), ` — ${tierPerks[t.key]}`)),
+      ),
+      h('div', { class: 'gbox' },
+        h('b', {}, 'Bonuses'),
+        h('ul', {},
+          h('li', {}, `A blooming planter adds +${BLOOM_BONUS}.`),
+          h('li', {}, `Every painted canvas adds +${PAINTING_BONUS}, for up to ${MAX_PAINTINGS} paintings per room.`),
+          h('li', {}, 'Decorations set into the room’s walls count too, so stained glass windows add comfort.'),
+        ),
+        this.p('A townsperson’s Housing button shows their room’s comfort and how much more the next tier needs.'),
+      ),
+      this.h2('The Artisan’s Bench'),
+      this.p('Craft one at a Workbench. It makes all the decorations below.'),
+    );
+    const bench = this.recipeLine('artisan_bench');
+    if (bench) this.page.append(bench);
+    this.page.append(this.h2('Decorations'));
+    for (const id of decor) {
+      const d = ItemRegistry.get(id);
+      this.page.append(h('div', { class: 'gset' }, h('div', { class: 'gline' }, this.item(id), h('span', { class: 'gmuted' }, `Comfort ${comfortOf(id)}`)), d.description ? h('div', {}, d.description) : null, this.recipeLine(id)));
+    }
+    this.page.append(
+      this.h2('Stained Glass'),
+      this.p('Stained glass is see-through, and light passing through it takes on its colour. A sunlit window of Rose glass casts a pink glow across the room. Prism Glass casts a different colour on every diagonal.'),
+      this.items(['rose_glass', 'amber_glass', 'verdant_glass', 'azure_glass', 'violet_glass', 'prism_glass']),
+      this.h2('Painting'),
+      this.p('Hang a Small or Grand Canvas on a background wall and right-click it to open the easel. Left-click paints, right-click erases, and Fill floods an area. Your picture is saved with the world and shared with other players online. Breaking the canvas erases the picture.'),
+      this.h2('Planters'),
+      this.p('Place a Planter Box, then right-click it while holding a seed. Plants grow while you are nearby. Right-click a bloom to harvest it; it regrows from a sprout.'),
+      ...PLANTER_PLANTS.map((pl) => h('div', { class: 'gline' }, this.item(pl.seed), h('span', {}, ` → ${pl.name}${pl.harvest ? `, harvest ${pl.harvest[1]}–${pl.harvest[2]}` : ' (decorative)'}`))),
+      this.h2('Weather-aware decor'),
+      this.p('Wind Chimes, Pennants and the Weathervane react to the real wind. Out in the open they sway harder and the chimes ring during storms; indoors they barely stir. The Tide Hourglass turns over at 6:00 and 18:00, and the Orrery’s little moon shows tonight’s phase.'),
+    );
   }
 
   private world(): void {

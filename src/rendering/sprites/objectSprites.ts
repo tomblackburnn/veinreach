@@ -138,9 +138,11 @@ const painters: Record<string, { size: [number, number]; paint: Painter }> = {
   table: {
     size: [3, 2],
     paint: (p) => {
-      p.rect(0, 10, 48, 4, WOOD).rect(0, 10, 48, 1, WOOD_L).rect(0, 13, 48, 1, WOOD_DD);
-      p.rect(3, 14, 3, 18, WOOD_D).rect(42, 14, 3, 18, WOOD_D);
-      p.rect(20, 6, 4, 4, '#e8dcc0').rect(28, 7, 6, 3, '#c0c0c8');
+      // Top flush with the upper edge so lamps, jars and planters sit on it.
+      p.rect(0, 0, 48, 4, WOOD).rect(0, 0, 48, 1, WOOD_L).rect(0, 3, 48, 1, WOOD_DD);
+      p.rect(2, 4, 44, 3, WOOD_D).rect(2, 6, 44, 1, WOOD_DD);
+      p.rect(3, 7, 3, 25, WOOD_D).rect(42, 7, 3, 25, WOOD_D).rect(3, 7, 1, 25, WOOD);
+      p.rect(6, 22, 36, 2, WOOD_D);
     },
   },
   chair: {
@@ -346,7 +348,195 @@ const painters: Record<string, { size: [number, number]; paint: Painter }> = {
       p.disc(8, 10, 3, '#e6dcc4').px(7, 10, '#3a3020').px(9, 10, '#3a3020');
     },
   },
+  // --- Hearth & Home decor (moving parts are drawn by DecorRenderer) ---
+  artisan_bench: {
+    size: [3, 2],
+    paint: (p) => {
+      p.rect(0, 12, 48, 4, WOOD).rect(0, 12, 48, 1, WOOD_L).rect(0, 15, 48, 1, WOOD_DD);
+      p.rect(3, 16, 3, 16, WOOD_D).rect(42, 16, 3, 16, WOOD_D).rect(6, 25, 36, 2, WOOD_D);
+      // Thread spools on the shelf.
+      for (const [c, x] of [['#b8434a', 11], ['#3e5fb0', 17], ['#f5cf3c', 23], ['#4fa33b', 29]] as const) p.rect(x - 2, 20, 5, 5, c).rect(x - 2, 20, 5, 1, WOOD_L).rect(x - 2, 24, 5, 1, WOOD_L);
+      // Brush jar.
+      p.rect(4, 6, 6, 6, '#9ac8d8').box(4, 6, 6, 6, '#5a8a9a');
+      p.line(5, 6, 3, 0, WOOD_D).line(7, 6, 7, 1, WOOD_D).line(9, 6, 11, 1, WOOD_D).px(3, 0, '#b8434a').px(7, 1, '#3e5fb0').px(11, 1, '#f5cf3c');
+      // Paint palette.
+      p.disc(19, 10, 4, '#e0c090').px(17, 9, '#b8434a').px(19, 8, '#3e5fb0').px(21, 9, '#f5cf3c').px(20, 11, '#4fa33b').px(18, 11, '#ffffff');
+      // Little framed landscape.
+      p.rect(29, 1, 14, 11, '#8b5a2b').rect(30, 2, 12, 9, '#8fc8f0').rect(30, 7, 12, 4, '#4fa33b').disc(38, 4, 1.5, '#f5cf3c').rect(30, 8, 5, 3, '#3f8f33');
+    },
+  },
+  wind_chime: {
+    size: [1, 2],
+    paint: (p) => {
+      p.rect(7, 0, 2, 2, IRON_D).rect(2, 2, 12, 2, WOOD_D).rect(2, 2, 12, 1, WOOD_L);
+    },
+  },
+  weathervane: {
+    size: [1, 3],
+    paint: (p) => {
+      p.rect(7, 8, 2, 36, IRON_D).rect(7, 8, 1, 36, IRON);
+      p.rect(4, 44, 8, 4, IRON_D).rect(3, 46, 10, 2, '#4a5060');
+      p.rect(3, 18, 10, 1, IRON_D).rect(7, 14, 2, 9, IRON_D);
+      p.px(2, 18, '#e0c070').px(13, 18, '#e0c070');
+      p.disc(8, 8, 1.5, '#e0c070');
+    },
+  },
+  pennant: {
+    size: [1, 3],
+    paint: (p) => {
+      p.rect(1, 0, 14, 2, WOOD_D).rect(1, 0, 14, 1, WOOD_L).px(0, 0, WOOD_DD).px(15, 0, WOOD_DD);
+    },
+  },
+  hanging_lantern: {
+    size: [1, 2],
+    paint: (p) => {
+      p.rect(5, 0, 6, 2, IRON_D);
+    },
+  },
+  wisp_jar: {
+    size: [1, 1],
+    paint: (p) => {
+      p.g.globalAlpha = 0.45;
+      p.rect(3, 5, 10, 10, '#b8e8f0');
+      p.g.globalAlpha = 1;
+      p.box(3, 5, 10, 10, '#6aa8b8').rect(4, 14, 8, 1, '#6aa8b8');
+      p.rect(4, 2, 8, 3, WOOD_D).rect(4, 2, 8, 1, WOOD_L).rect(6, 1, 4, 1, '#c0a070');
+      p.px(4, 6, '#ffffff').px(4, 7, '#e0f8ff');
+    },
+  },
+  fountain: {
+    size: [3, 3],
+    paint: (p) => {
+      const st = '#8a8a94';
+      const stL = '#a8a8b2';
+      const stD = '#5f5f69';
+      // Basin
+      p.rect(2, 36, 44, 12, st).rect(0, 34, 48, 3, stL).rect(0, 36, 48, 1, stD).rect(2, 46, 44, 2, stD);
+      for (let x = 6; x < 44; x += 8) p.rect(x, 39, 1, 7, stD);
+      p.rect(2, 37, 44, 3, '#3a7ad0').rect(2, 37, 44, 1, '#8ac0ff');
+      // Pillar + upper bowl
+      p.rect(21, 14, 6, 22, st).rect(21, 14, 2, 22, stL).rect(26, 14, 1, 22, stD);
+      p.rect(19, 30, 10, 4, stD);
+      p.rect(12, 11, 24, 4, st).rect(10, 10, 28, 2, stL).rect(14, 15, 20, 1, stD);
+      p.rect(12, 11, 24, 1, '#8ac0ff');
+      p.rect(22, 4, 4, 6, st).rect(22, 4, 4, 1, stL).rect(23, 2, 2, 2, stD);
+    },
+  },
+  gloop_lamp: {
+    size: [1, 2],
+    paint: (p) => {
+      p.rect(3, 26, 10, 6, IRON_D).rect(3, 26, 10, 1, IRON).rect(2, 30, 12, 2, '#4a5060');
+      p.rect(5, 0, 6, 3, IRON_D).rect(6, 0, 4, 1, IRON);
+      p.rect(4, 3, 8, 23, '#173022');
+      p.g.globalAlpha = 0.5;
+      p.rect(4, 3, 8, 23, '#2e6a3a');
+      p.g.globalAlpha = 1;
+      p.rect(4, 3, 1, 23, '#9ad8a0').rect(11, 3, 1, 23, '#1a3a24');
+    },
+  },
+  hourglass: {
+    size: [1, 2],
+    paint: (p) => {
+      p.rect(1, 0, 14, 3, WOOD).rect(1, 0, 14, 1, WOOD_L).rect(1, 29, 14, 3, WOOD).rect(1, 31, 14, 1, WOOD_DD);
+      p.rect(2, 3, 1, 26, WOOD_D).rect(13, 3, 1, 26, WOOD_D);
+      for (let y = 3; y < 29; y++) {
+        const hw = hourglassHalfWidth(y);
+        p.g.globalAlpha = 0.3;
+        p.rect(8 - hw, y, hw * 2, 1, '#d8f0f8');
+        p.g.globalAlpha = 1;
+        p.px(8 - hw - 1, y, '#a8d0e0').px(8 + hw, y, '#a8d0e0');
+      }
+    },
+  },
+  orrery: {
+    size: [3, 3],
+    paint: (p) => {
+      const brass = '#c9a24a';
+      const brassD = '#8a6a2a';
+      p.rect(14, 42, 20, 6, brassD).rect(12, 46, 24, 2, '#5a4420').rect(14, 42, 20, 1, brass);
+      p.rect(23, 26, 2, 16, brass).rect(23, 26, 1, 16, '#ffe0a0');
+      p.disc(24, 26, 2, brassD);
+      // Moon dial housing at the top.
+      p.disc(24, 5, 5, '#2a2440').disc(24, 5, 5, '#2a2440');
+      p.box(19, 0, 11, 11, brassD);
+    },
+  },
+  planter: {
+    size: [1, 1],
+    paint: (p, v) => paintPlanter(p, v),
+  },
+  canvas_small: {
+    size: [2, 2],
+    paint: (p) => paintCanvasFrame(p, 32, 32),
+  },
+  canvas_wide: {
+    size: [4, 3],
+    paint: (p) => paintCanvasFrame(p, 64, 48),
+  },
+  rug: {
+    size: [3, 1],
+    paint: (p, v) => {
+      const schemes = [
+        ['#b8434a', '#e8c070', '#7a2a30'],
+        ['#3e5fb0', '#e8dcc0', '#243a70'],
+        ['#4f8a3b', '#f5cf3c', '#2a5a20'],
+        ['#7a4fa8', '#e0b0ff', '#4a2a70'],
+      ];
+      const [base, trim, dark] = schemes[v % schemes.length];
+      p.rect(2, 12, 44, 4, base).rect(2, 12, 44, 1, trim).rect(2, 15, 44, 1, dark);
+      for (let x = 5; x < 43; x += 6) p.px(x, 13, trim).px(x + 1, 14, trim).px(x + 2, 13, trim);
+      for (let y = 12; y < 16; y++) p.px(0, y, trim).px(47, y, trim).px(1, y, dark).px(46, y, dark);
+    },
+  },
 };
+
+/** Half-width of the hourglass glass at pixel row y (shared with the animated sand). */
+export function hourglassHalfWidth(y: number): number {
+  if (y < 10 || y > 21) return 4;
+  const d = y <= 15 ? y - 9 : 22 - y;
+  return Math.max(1, Math.round(4 - d * 0.6));
+}
+
+/** Wooden frame (2px) around bare canvas; painted art fills the interior. */
+function paintCanvasFrame(p: Pix, w: number, h: number): void {
+  p.rect(0, 0, w, h, '#8b5a2b').box(0, 0, w, h, WOOD_DD).rect(1, 1, w - 2, 1, WOOD_L).px(1, 1, '#d4a441').px(w - 2, 1, '#d4a441');
+  p.rect(2, 2, w - 4, h - 4, '#efe4c8');
+  p.rect(2, 2, w - 4, 1, '#d8ccb0').rect(2, 2, 1, h - 4, '#d8ccb0');
+}
+
+/** Planter variants encode plant kind*4 + growth stage. */
+function paintPlanter(p: Pix, v: number): void {
+  const kind = v >> 2;
+  const stage = v & 3;
+  p.rect(2, 10, 12, 6, WOOD).rect(1, 9, 14, 2, WOOD_L).rect(2, 15, 12, 1, WOOD_DD).rect(3, 11, 1, 4, WOOD_D).rect(12, 11, 1, 4, WOOD_D);
+  p.rect(3, 9, 10, 1, '#4a3020');
+  if (!kind) return;
+  const stem = kind === 2 ? '#d8e8f0' : kind === 4 ? '#6b4526' : '#3f8f33';
+  if (stage === 0) {
+    p.px(8, 8, '#5cb847').px(7, 7, '#5cb847');
+    return;
+  }
+  const h = stage === 1 ? 3 : stage === 2 ? 5 : 7;
+  if (kind === 4) {
+    // Bonsai: a crooked trunk and a flat crown.
+    p.line(8, 8, 7, 9 - h, stem).line(7, 9 - h, 9, 8 - h, stem);
+    if (stage >= 2) p.rect(4, 6 - h, 8, 3, '#3d8a2f').rect(5, 5 - h, 6, 1, '#58a846');
+    if (stage === 3) p.rect(3, 7 - h, 3, 2, '#357a28').rect(10, 6 - h, 3, 2, '#357a28');
+    return;
+  }
+  for (const [x, dh] of [[5, -1], [8, 0], [11, -2]] as const) {
+    p.line(x, 8, x, 9 - h - dh, stem);
+    if (stage === 1) p.px(x + 1, 8 - h, '#5cb847');
+  }
+  if (stage < 2) return;
+  const cols = kind === 1 ? ['#e85d9a', '#f5cf3c', '#8fb0ff'] : kind === 2 ? ['#45c8d8', '#8ff0ff', '#45c8d8'] : ['#ff7a2a', '#ffb040', '#ff5a1a'];
+  [[5, -1], [8, 0], [11, -2]].forEach(([x, dh], i) => {
+    const y = 8 - h - dh;
+    if (stage === 2) p.px(x, y, shade(cols[i], 0.7));
+    else if (kind === 2) p.rect(x - 2, y, 5, 2, cols[i]).px(x, y - 1, '#d4fff8');
+    else p.rect(x - 1, y - 1, 3, 3, cols[i]).px(x, y, kind === 1 ? '#fff0a0' : '#ffe070');
+  });
+}
 
 class ObjectSpriteCache {
   private cache = new Map<string, Canvas2D>();

@@ -4,7 +4,8 @@ import { generateWorldSync } from '../src/generation/WorldGenerator';
 import { WORLD_SIZES, type WorldSizeKey, DAY_TICKS } from '../src/core/config';
 import type { World } from '../src/world/World';
 import { chunkToRecord, encodeChunkRecord, decodeChunkRecord, applyChunkRecord, type ExportedChunk } from '../src/save/serialization';
-import type { ChestData } from '../src/world/WorldState';
+import type { ChestData, PaintingData } from '../src/world/WorldState';
+import { sanitizePainting, paintingFits, isPainted, isCanvasTile } from '../src/world/paintings';
 import { TileRegistry } from '../src/world/TileRegistry';
 import { ItemRegistry } from '../src/items/ItemRegistry';
 import type { Slot } from '../src/items/ItemStack';
@@ -18,6 +19,7 @@ interface SaveFile {
   day: number;
   flags: string[];
   chests: ChestData[];
+  paintings?: PaintingData[];
   chunks: ExportedChunk[];
 }
 
@@ -33,6 +35,7 @@ export class WorldHost {
   day = 1;
   flags = new Set<string>();
   chests = new Map<string, ChestData>();
+  paintings = new Map<string, PaintingData>();
   dirty = false;
 
   constructor(
@@ -72,6 +75,10 @@ export class WorldHost {
       this.flags = new Set(save.flags);
       this.chests.clear();
       for (const c of save.chests) this.chests.set(`${c.x},${c.y}`, c);
+      for (const raw of save.paintings ?? []) {
+        const p = sanitizePainting(raw);
+        if (p && paintingFits(this.world, p)) this.paintings.set(`${p.x},${p.y}`, p);
+      }
       console.log(`[server] loaded ${n} modified chunks`);
     }
     (this as { seed: string }).seed = seed;
@@ -93,6 +100,7 @@ export class WorldHost {
       day: this.day,
       flags: [...this.flags],
       chests: [...this.chests.values()],
+      paintings: [...this.paintings.values()],
       chunks: this.modifiedChunks(),
     };
     mkdirSync(dirname(this.file), { recursive: true });
@@ -132,10 +140,23 @@ export class WorldHost {
       w.setFg(x, y, fg, frame);
       w.setWall(x, y, wall);
       if (before === TileRegistry.id('chest') && fg !== before) this.chests.delete(`${x},${y}`);
+      if (isCanvasTile(before) && fg !== before) this.paintings.delete(`${x},${y}`);
       accepted.push(x, y, fg, frame, wall);
     }
     if (accepted.length) this.dirty = true;
     return accepted;
+  }
+
+  /** Validate a painting from a player standing at tile (px,py). Returns the stored copy or null. */
+  validPainting(raw: unknown, px: number, py: number, maxDist = 48): PaintingData | null {
+    const p = sanitizePainting(raw);
+    if (!p || !paintingFits(this.world, p)) return null;
+    if (Math.abs(p.x - px) > maxDist || Math.abs(p.y - py) > maxDist) return null;
+    const key = `${p.x},${p.y}`;
+    if (isPainted(p)) this.paintings.set(key, p);
+    else this.paintings.delete(key);
+    this.dirty = true;
+    return p;
   }
 
   validChest(raw: unknown): ChestData | null {

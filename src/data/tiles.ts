@@ -93,4 +93,43 @@ export const TILE_DEFS: TileDef[] = [
   { id: 75, key: 'moonsilver_brick', name: 'Moonsilver Brick', hardness: 1.5, tool: 'pickaxe', toolPower: 0, solid: true, drop: 'moonsilver_brick', texture: { kind: 'brick', base: '#bccbe6', dark: '#95a4c0', light: '#dde8fb', accent: '#6f7c96' }, mapColor: '#b0bfda', sound: 'metal' },
   { id: 76, key: 'sungild_brick', name: 'Sungild Brick', hardness: 1.5, tool: 'pickaxe', toolPower: 0, solid: true, drop: 'sungild_brick', light: [0.05, 0.04, 0], texture: { kind: 'brick', base: '#e4bf40', dark: '#b8962b', light: '#f7da70', accent: '#8e7020' }, mapColor: '#d8b43a', sound: 'metal' },
   { id: 77, key: 'bone_pile', name: 'Bone Pile', hardness: 0, tool: 'any', toolPower: 0, solid: false, transparent: true, cuttable: true, support: 'floor', drop: 'bone', dropCount: [1, 2], texture: { kind: 'sprite', base: '#e6dcc4' }, mapColor: '#8c8578', sound: 'stone', noEdges: true },
+
+  // --- Hearth & Home: decor with comfort, light tinting and weather reactions ---
+  deco(78, 'artisan_bench', "Artisan's Bench", [3, 2], 'floor', 2, '#b07a48', 'wood', { furniture: ['station', 'table'], station: 'artisan' }),
+  stained(79, 'rose_glass', 'Rose Stained Glass', '#d8546e', '#ffb0c0', [1.0, 0.42, 0.52]),
+  stained(80, 'amber_glass', 'Amber Stained Glass', '#e8a23a', '#ffe0a0', [1.0, 0.74, 0.32]),
+  stained(81, 'verdant_glass', 'Verdant Stained Glass', '#4fb86a', '#b8f0c0', [0.42, 1.0, 0.5]),
+  stained(82, 'azure_glass', 'Azure Stained Glass', '#3f7ee0', '#b0d0ff', [0.38, 0.62, 1.0]),
+  stained(83, 'violet_glass', 'Violet Stained Glass', '#8a4fd0', '#dcc0ff', [0.7, 0.42, 1.0]),
+  stained(84, 'prism_glass', 'Prism Glass', '#c8c8e0', '#ffffff', [1, 1, 1], 4),
+  deco(85, 'wind_chime', 'Wind Chime', [1, 2], 'ceiling', 3, '#c9a24a', 'metal'),
+  deco(86, 'weathervane', 'Weathervane', [1, 3], 'floor', 3, '#5d6474', 'metal'),
+  deco(87, 'pennant', 'Festival Pennant', [1, 3], 'ceiling', 2, '#d05a5a', 'cloth'),
+  deco(88, 'hanging_lantern', 'Hanging Lantern', [1, 2], 'ceiling', 3, '#ffcf70', 'metal', { furniture: ['light'], light: [1.0, 0.8, 0.5] }),
+  deco(89, 'wisp_jar', 'Wisp Jar', [1, 1], 'floor', 4, '#7fe8f0', 'glass', { furniture: ['light'], light: [0.25, 0.62, 0.72] }),
+  deco(90, 'fountain', 'Stone Fountain', [3, 3], 'floor', 6, '#8a8a94', 'stone'),
+  deco(91, 'gloop_lamp', 'Gloop Lamp', [1, 2], 'floor', 4, '#6ad04a', 'glass', { furniture: ['light'], light: [0.36, 0.8, 0.34] }),
+  deco(92, 'hourglass', 'Tide Hourglass', [1, 2], 'floor', 4, '#e0c88a', 'glass'),
+  deco(93, 'orrery', 'Starlit Orrery', [3, 3], 'floor', 8, '#d8b060', 'metal', { furniture: ['light'], light: [0.4, 0.34, 0.55] }),
+  { id: 94, key: 'planter', name: 'Planter Box', hardness: 0.3, tool: 'pickaxe', toolPower: 0, solid: false, transparent: true, drop: 'planter', support: 'floor', comfort: 1, texture: { kind: 'sprite', base: '#8b5a2b' }, mapColor: '#7a4f28', sound: 'wood', noEdges: true },
+  deco(95, 'canvas_small', 'Small Canvas', [2, 2], 'wall', 1, '#efe4c8', 'cloth'),
+  deco(96, 'canvas_wide', 'Grand Canvas', [4, 3], 'wall', 1, '#efe4c8', 'cloth'),
+  deco(97, 'rug', 'Woven Rug', [3, 1], 'floor', 3, '#b8434a', 'cloth'),
 ];
+
+/** Comfort values for furniture that predates the comfort system. */
+const BASE_COMFORT: Record<string, number> = {
+  torch: 1, lamp: 2, campfire: 3, chair: 1, table: 2, workbench: 1, bed: 4, bookcase: 4, chest: 1, glass: 1,
+  furnace: 1, anvil: 1, alembic: 2, runescribe: 3, aetherforge: 3, starloom: 5,
+};
+for (const t of TILE_DEFS) if (t.comfort === undefined && BASE_COMFORT[t.key]) t.comfort = BASE_COMFORT[t.key];
+
+/** A placeable decoration object drawn by an object sprite. */
+function deco(id: number, key: string, name: string, size: [number, number], support: TileDef['support'], comfort: number, color: string, sound: TileDef['sound'], extra: Partial<TileDef> = {}): TileDef {
+  return { id, key, name, hardness: 0.5, tool: 'pickaxe', toolPower: 0, solid: false, transparent: true, drop: key, size: size[0] * size[1] > 1 ? size : undefined, support, comfort, texture: { kind: 'sprite', base: color }, mapColor: color, sound, noEdges: true, ...extra };
+}
+
+/** A stained glass block: solid, see-through, and tints the light passing through it. */
+function stained(id: number, key: string, name: string, base: string, light: string, tint: [number, number, number], comfort = 2): TileDef {
+  return { id, key, name, hardness: 0.4, tool: 'pickaxe', toolPower: 0, solid: true, transparent: true, drop: key, tint, comfort, texture: { kind: 'stained', base, light, dark: '#241a22', accent: key === 'prism_glass' ? 'prism' : undefined }, mapColor: base, sound: 'glass' };
+}

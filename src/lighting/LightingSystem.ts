@@ -20,7 +20,9 @@ export class LightingSystem {
   private r = new Float32Array(0);
   private g = new Float32Array(0);
   private b = new Float32Array(0);
-  private decay = new Float32Array(0);
+  private dr = new Float32Array(0);
+  private dg = new Float32Array(0);
+  private db = new Float32Array(0);
   x0 = 0;
   y0 = 0;
   readonly canvas: HTMLCanvasElement | null;
@@ -43,7 +45,9 @@ export class LightingSystem {
     this.r = new Float32Array(n);
     this.g = new Float32Array(n);
     this.b = new Float32Array(n);
-    this.decay = new Float32Array(n);
+    this.dr = new Float32Array(n);
+    this.dg = new Float32Array(n);
+    this.db = new Float32Array(n);
     if (this.canvas && this.cctx) {
       this.canvas.width = w;
       this.canvas.height = h;
@@ -60,6 +64,15 @@ export class LightingSystem {
     return Math.max(this.r[i], this.g[i], this.b[i]);
   }
 
+  /** RGB light at a tile (0..1 each), or null outside the computed area. */
+  colorAt(tx: number, ty: number): [number, number, number] | null {
+    const x = tx - this.x0;
+    const y = ty - this.y0;
+    if (x < 0 || y < 0 || x >= this.gw || y >= this.gh) return null;
+    const i = y * this.gw + x;
+    return [this.r[i], this.g[i], this.b[i]];
+  }
+
   compute(world: World, left: number, top: number, right: number, bottom: number, sky: { r: number; g: number; b: number }, lights: LightSource[], opts: { nightVision: boolean; ambient?: [number, number, number] }): void {
     const x0 = Math.floor(left / 16) - MARGIN;
     const y0 = Math.floor(top / 16) - MARGIN;
@@ -70,11 +83,13 @@ export class LightingSystem {
     this.ensure(gw, gh);
     this.x0 = x0;
     this.y0 = y0;
-    const { r, g, b, decay } = this;
+    const { r, g, b, dr, dg, db } = this;
     const L = world.layers;
     const uw = L.underworldY;
     const emits = TileRegistry.emits;
     const opaque = TileRegistry.opaque;
+    const tinted = TileRegistry.tinted;
+    const prism = TileRegistry.tryId('prism_glass') ?? -1;
 
     // Seed
     for (let gy = 0; gy < gh; gy++) {
@@ -120,11 +135,25 @@ export class LightingSystem {
             lg = Math.max(lg, TileRegistry.lightG[fg]);
             lb = Math.max(lb, TileRegistry.lightB[fg]);
           }
+          if (tinted[fg]) {
+            // Stained glass filters whatever passes through (including its own skylight).
+            const [kr, kg, kb] = fg === prism ? prismTint(tx, ty) : [TileRegistry.tintR[fg], TileRegistry.tintG[fg], TileRegistry.tintB[fg]];
+            lr *= kr;
+            lg *= kg;
+            lb *= kb;
+            r[i] = lr;
+            g[i] = lg;
+            b[i] = lb;
+            dr[i] = dec * kr;
+            dg[i] = dec * kg;
+            db[i] = dec * kb;
+            continue;
+          }
         }
         r[i] = lr;
         g[i] = lg;
         b[i] = lb;
-        decay[i] = dec;
+        dr[i] = dg[i] = db[i] = dec;
       }
     }
     for (const s of lights) {
@@ -183,10 +212,9 @@ export class LightingSystem {
   }
 
   private spread(i: number, from: number): void {
-    const d = this.decay[i];
-    const r = this.r[from] * d;
-    const g = this.g[from] * d;
-    const b = this.b[from] * d;
+    const r = this.r[from] * this.dr[i];
+    const g = this.g[from] * this.dg[i];
+    const b = this.b[from] * this.db[i];
     if (r > this.r[i]) this.r[i] = r;
     if (g > this.g[i]) this.g[i] = g;
     if (b > this.b[i]) this.b[i] = b;
@@ -201,6 +229,19 @@ export class LightingSystem {
     ctx.drawImage(this.canvas, this.x0 * 16, this.y0 * 16, this.gw * 16, this.gh * 16);
     ctx.restore();
   }
+}
+
+/** Prism glass tints light by position, so a pane casts a rainbow. */
+const PRISM: [number, number, number][] = [
+  [1, 0.4, 0.4],
+  [1, 0.72, 0.3],
+  [0.95, 1, 0.35],
+  [0.4, 1, 0.5],
+  [0.4, 0.65, 1],
+  [0.75, 0.45, 1],
+];
+export function prismTint(x: number, y: number): [number, number, number] {
+  return PRISM[(((x + y) % 6) + 6) % 6];
 }
 
 export function skyLight(daylight: number, tint?: string): { r: number; g: number; b: number } {

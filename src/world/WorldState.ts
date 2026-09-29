@@ -8,6 +8,15 @@ export interface ChestData {
   name?: string;
 }
 
+/** A player-painted canvas. `px` holds one hex palette index (0-f) per art pixel, row-major. */
+export interface PaintingData {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  px: string;
+}
+
 export interface StructureInfo {
   kind: string;
   name: string;
@@ -68,6 +77,7 @@ export interface WorldState {
   playerPositions: Record<string, { x: number; y: number }>;
   structures: StructureInfo[];
   chests: ChestData[];
+  paintings: PaintingData[];
   drops: { id: string; count: number; x: number; y: number }[];
   /** Deterministic counter so post-generation world changes can be seeded. */
   mutationCounter: number;
@@ -88,6 +98,7 @@ export function defaultWorldState(): WorldState {
     playerPositions: {},
     structures: [],
     chests: [],
+    paintings: [],
     drops: [],
     mutationCounter: 0,
   };

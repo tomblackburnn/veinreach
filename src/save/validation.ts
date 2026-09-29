@@ -1,7 +1,8 @@
 import type { CharacterSave, WorldRecord } from './types';
 import { sanitizeAppearance, DIFFICULTIES, type Difficulty } from '../entities/player/Appearance';
 import { WORLD_SIZES, type WorldSizeKey, SAVE_VERSION } from '../core/config';
-import { defaultWorldState, type WorldState } from '../world/WorldState';
+import { defaultWorldState, type WorldState, type PaintingData } from '../world/WorldState';
+import { sanitizePainting } from '../world/paintings';
 import { ItemRegistry } from '../items/ItemRegistry';
 import type { Slot } from '../items/ItemStack';
 
@@ -75,6 +76,7 @@ function validateState(raw: unknown): WorldState {
   d.playerPositions = pts(raw.playerPositions);
   d.structures = Array.isArray(raw.structures) ? raw.structures.filter(isObj).map((s) => ({ kind: str(s.kind, ''), name: str(s.name, ''), x: num(s.x, 0), y: num(s.y, 0), w: num(s.w, 0), h: num(s.h, 0), discovered: s.discovered === true })) : [];
   d.chests = Array.isArray(raw.chests) ? raw.chests.filter(isObj).map((c) => ({ x: num(c.x, 0), y: num(c.y, 0), items: slots(c.items, 40), name: typeof c.name === 'string' ? c.name.slice(0, 32) : undefined })) : [];
+  d.paintings = Array.isArray(raw.paintings) ? raw.paintings.map(sanitizePainting).filter((x): x is PaintingData => !!x) : [];
   d.drops = Array.isArray(raw.drops) ? raw.drops.filter((x): x is { id: string; count: number; x: number; y: number } => isObj(x) && typeof x.id === 'string' && ItemRegistry.has(x.id) && typeof x.count === 'number' && typeof x.x === 'number' && typeof x.y === 'number') : [];
   d.mutationCounter = num(raw.mutationCounter, 0);
   return d;

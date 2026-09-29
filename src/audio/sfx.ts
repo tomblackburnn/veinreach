@@ -38,6 +38,11 @@ export const SFX: Record<string, SfxLayer[]> = {
     { wave: 'sine', freq: 1980, dur: 0.25, vol: 0.1, delay: 0.03 },
   ],
   cloth: [{ wave: 'noise', freq: 0, dur: 0.08, vol: 0.25, filter: { type: 'lowpass', freq: 600 } }],
+  chime: [
+    { wave: 'sine', freq: 1568, dur: 1.4, attack: 0.002, vol: 0.09 },
+    { wave: 'sine', freq: 4330, dur: 0.5, attack: 0.002, vol: 0.025 },
+    { wave: 'triangle', freq: 3136, dur: 0.8, attack: 0.002, vol: 0.02, delay: 0.005 },
+  ],
   place: [{ wave: 'noise', freq: 0, dur: 0.06, vol: 0.35, filter: { type: 'lowpass', freq: 700 } }, { wave: 'sine', freq: 140, freqEnd: 80, dur: 0.06, vol: 0.3 }],
   break: [{ wave: 'noise', freq: 0, dur: 0.16, vol: 0.5, filter: { type: 'lowpass', freq: 1200 } }],
   swing: [{ wave: 'noise', freq: 0, dur: 0.12, attack: 0.03, vol: 0.28, filter: { type: 'bandpass', freq: 900, q: 0.7 } }],

@@ -173,6 +173,7 @@ export const BOSS_GUIDE: Record<string, BossGuide> = {
 
 export const STATION_GUIDE: { item: string; how: string; makes: string }[] = [
   { item: 'workbench', how: '10 Timber, by hand', makes: 'Furniture, wooden gear, arrows, walls, boss summons' },
+  { item: 'artisan_bench', how: 'Timber, Stone and torches at a Workbench', makes: 'Decorations, stained glass, canvases, planters (see Hearth & Home)' },
   { item: 'furnace', how: 'Stone, Timber and torches at a Workbench', makes: 'Bars, bricks, glass' },
   { item: 'anvil', how: 'Ferrocite (or Brasslite) bars at a Workbench', makes: 'Metal tools, weapons, armour, accessories' },
   { item: 'alembic', how: 'Glass, Timber and Brasslite bars at a Workbench', makes: 'Draughts, elixirs, stew' },

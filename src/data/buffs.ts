@@ -27,6 +27,10 @@ export const BUFFS: BuffDef[] = [
   { id: 'wellfed', name: 'Well Fed', description: 'Minor improvements to all stats', debuff: false, icon: { t: 'bowl', c: ['#45c8d8', '#a4713f'] }, mods: { defense: 2, crit: 2, damage: 0.05, moveSpeed: 0.05, lifeRegen: 0.5 } },
   { id: 'campfire', name: 'Cozy Fire', description: 'Life regeneration is increased', debuff: false, icon: { t: 'flame', c: ['#ff9a3a'] }, mods: { lifeRegen: 1 } },
   { id: 'homely', name: 'Homely', description: 'Your spawn point is set', debuff: false, icon: { t: 'heart', c: ['#b8434a', '#ffb0c0'] } },
+  { id: 'snug', name: 'Snug', description: 'Resting in a homely room: +1 life regeneration', debuff: false, icon: { t: 'heart', c: ['#d8a060', '#ffe0b0'] }, mods: { lifeRegen: 1 } },
+  { id: 'cozy', name: 'Cozy', description: 'Resting in a cozy room: +2 life regeneration, +5% movement speed', debuff: false, icon: { t: 'heart', c: ['#e8804a', '#ffd0a0'] }, mods: { lifeRegen: 2, moveSpeed: 0.05 } },
+  { id: 'lavish', name: 'Lavish Comforts', description: 'Resting in a lavish room: +3 life regeneration, +2 defense, +10% mining speed', debuff: false, icon: { t: 'star', c: ['#fff0a0', '#e8a23a'] }, mods: { lifeRegen: 3, defense: 2, miningSpeed: 0.1 } },
+  { id: 'hearthglow', name: 'Hearthglow', description: 'The warmth of a well-kept home: +1 life regeneration, +5% damage', debuff: false, icon: { t: 'flame', c: ['#ffb060'] }, mods: { lifeRegen: 1, damage: 0.05 } },
   // Debuffs
   { id: 'potion_sickness', name: 'Draught Sickness', description: 'Cannot drink healing draughts', debuff: true, icon: { t: 'potion', c: ['#707070'] } },
   { id: 'poisoned', name: 'Poisoned', description: 'Slowly losing health', debuff: true, icon: { t: 'drop', c: ['#6ad04a'] }, dps: 4, particle: '#6ad04a' },

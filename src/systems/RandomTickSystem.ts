@@ -2,6 +2,7 @@ import type { GameContext } from '../core/context';
 import { T, TileRegistry } from '../world/TileRegistry';
 import { growTree, TREE_KIND } from '../generation/passes/vegetation';
 import { FLAGS } from './ProgressionSystem';
+import { growPlanter } from '../world/decor';
 
 const TICKS_PER_FRAME = 60;
 const RADIUS = 90;
@@ -14,6 +15,7 @@ const RADIUS = 90;
 export class RandomTickSystem {
   private tall = TileRegistry.id('tallgrass');
   private flower = TileRegistry.id('flower');
+  private planter = TileRegistry.id('planter');
 
   update(ctx: GameContext): void {
     const w = ctx.world;
@@ -23,6 +25,10 @@ export class RandomTickSystem {
       const y = p.tileY + Math.floor((Math.random() * 2 - 1) * RADIUS * 0.7);
       if (!w.inBounds(x, y)) continue;
       const id = w.getFg(x, y);
+      if (id === this.planter) {
+        growPlanter(ctx, x, y);
+        continue;
+      }
       if (id === T.sapling) {
         if (Math.random() < 0.02) this.growSapling(ctx, x, y);
         continue;

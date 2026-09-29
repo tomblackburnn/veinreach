@@ -7,6 +7,9 @@ import { canPlace, placeTile, placeWall, canPlaceWall } from '../world/WorldActi
 export function placementOrigin(tileKey: string, tx: number, ty: number): [number, number] {
   const def = TileRegistry.get(TileRegistry.id(tileKey));
   const [w, h] = def.size ?? [1, 1];
+  // Hanging objects are placed from their top edge; everything else from the floor.
+  if (def.support === 'ceiling') return [tx - Math.floor((w - 1) / 2), ty];
+  if (def.support === 'wall') return [tx - Math.floor((w - 1) / 2), ty - Math.floor((h - 1) / 2)];
   return [tx - Math.floor((w - 1) / 2), ty - (h - 1)];
 }
 
