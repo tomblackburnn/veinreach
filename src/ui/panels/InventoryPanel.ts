@@ -29,6 +29,8 @@ export class InventoryPanel {
   private cursorImg: HTMLImageElement;
   private cursorCount: HTMLSpanElement;
   private chestWrap: HTMLDivElement;
+  /** Slot under the backpack where the NPC shop/dialog docks while the inventory is open. */
+  readonly dock: HTMLDivElement;
   private chest: ChestData | null = null;
   private chestContainer: Container | null = null;
   private craftList: HTMLDivElement;
@@ -57,6 +59,7 @@ export class InventoryPanel {
     const sortBtn = h('button', { class: 'btn small', onclick: () => inv.main.sort([10, 50]) }, 'Sort');
     const depositBtn = h('button', { class: 'btn small', title: 'Quick stack to nearby chests', onclick: () => this.quickStackNearby() }, 'Quick Stack');
     this.chestWrap = h('div', { class: 'panel' });
+    this.dock = h('div', { class: 'inv-dock' });
     this.chestWrap.style.display = 'none';
     this.stationsEl = h('div', { class: 'label-sm' });
     this.craftList = h('div', { class: 'craft-list' });
@@ -67,6 +70,7 @@ export class InventoryPanel {
       h('div', { class: 'col' },
         h('div', { class: 'panel' }, h('h3', {}, 'Inventory'), main, h('div', { class: 'row', style: 'margin-top:8px' }, sortBtn, depositBtn, h('div', { class: 'spacer' }), h('span', { class: 'label-sm' }, 'Trash'), trash)),
         this.chestWrap,
+        this.dock,
       ),
       h('div', { class: 'col' },
         h('div', { class: 'panel' },
@@ -177,6 +181,7 @@ export class InventoryPanel {
   }
 
   openChest(chest: ChestData): void {
+    this.s.npcPanel.close();
     this.chest = chest;
     this.chestContainer = new Container(40);
     this.chestContainer.slots.splice(0, 40, ...chest.items.map((s) => (s ? { ...s } : null)));

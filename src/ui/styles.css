@@ -208,9 +208,15 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .tooltip .tg { color: var(--good); }
 .tooltip .tb { color: var(--bad); }
 .tooltip .tv { color: var(--gold-2); margin-top: 4px; }
-.shop-grid { display: grid; grid-template-columns: repeat(6, 46px); gap: 4px; }
+.shop-grid { display: grid; grid-template-columns: repeat(10, 46px); gap: 4px; }
 .dialog-text { font-size: 22px; line-height: 1.1; min-height: 60px; max-width: 460px; }
-.npc-panel { position: absolute; top: 70px; left: 50%; transform: translateX(-50%); pointer-events: auto; max-width: 560px; }
+/* NPC dialog/shop: sits where the backpack would be; docks under it when the inventory is open. */
+.npc-panel { position: absolute; top: 70px; left: 10px; pointer-events: auto; width: 530px; max-width: calc(100vw / var(--ui-scale) - 20px); }
+.npc-panel.docked { position: static; }
+.npc-panel h2 { font-size: 15px; }
+.chat-input { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); width: min(460px, calc(90vw / var(--ui-scale))); pointer-events: auto; z-index: 60; }
+.npc-panel .dialog-text { max-width: none; }
+.inv-dock:empty { display: none; }
 .label-sm { font-family: var(--font-head); font-size: 10px; color: var(--muted); margin: 4px 0; }
 .trash-slot { background: #2a1414 !important; }
 

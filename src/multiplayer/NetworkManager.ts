@@ -106,7 +106,7 @@ export class NetworkManager {
     if (!this.session || !this.connected) return;
     if (e.code === 'Enter' && !this.chatEl && !this.session.host.input.typing) {
       e.preventDefault();
-      this.chatEl = h('input', { type: 'text', maxlength: '200', placeholder: 'Say something... (Enter to send, Esc to cancel)', style: 'position:absolute;left:12px;bottom:200px;width:420px;pointer-events:auto' });
+      this.chatEl = h('input', { type: 'text', maxlength: '200', placeholder: 'Say something... (Enter to send, Esc to cancel)', class: 'chat-input' });
       this.session.host.ui.root.appendChild(this.chatEl);
       this.session.host.input.typing = true;
       this.chatEl.focus();

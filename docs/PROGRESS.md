@@ -7,7 +7,7 @@ _Last updated: 2026-09-29_
 | Check | Status |
 |---|---|
 | `npm run typecheck` (client + server) | ✅ passing |
-| `npm run test` | ✅ 67 tests passing (unit + headless simulation) |
+| `npm run test` | ✅ 68 tests passing (unit + headless simulation) |
 | `npm run build` | ✅ passing (~440 kB JS, ~140 kB gzipped) |
 | Browser runtime | ✅ Verified manually in Chromium: menus, character/world creation, generation, mining, placing, crafting, chests, persistence across reload, all five bosses rendered and fighting. No console errors. |
 
@@ -67,6 +67,8 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- Housing minimum lowered to 40 open tiles (from 60); the "too small" message shows the tile count.
+- The NPC dialog/shop now docks under the backpack while the inventory is open (and sits in that spot otherwise), so it never covers Equipment or Crafting. The multiplayer chat box moved to the bottom-centre.
 - **Housing Deed** (creative item): builds a complete, valid NPC house at the cursor. It refuses to overwrite furniture or chests. Items marked `cheat` are excluded from the obtainability audit.
 - **Delver's Almanac**: an in-game guidebook (G) with a live boss checklist, current objective, per-stage loadouts, armour sets, ores and tools, stations, townsfolk and events. Its content is validated by tests.
 - Fixed: the boss health bar now disappears after a boss is defeated or leaves.

@@ -13,8 +13,8 @@ export interface RoomCheck {
   maxX?: number;
 }
 
-const MIN_CELLS = 60;
-const MAX_CELLS = 750;
+export const MIN_CELLS = 40;
+export const MAX_CELLS = 750;
 
 function isBoundary(world: World, x: number, y: number): boolean {
   if (!world.inBounds(x, y)) return true;
@@ -24,7 +24,7 @@ function isBoundary(world: World, x: number, y: number): boolean {
 
 /**
  * Validate an NPC room by flood-filling the interior from (x,y).
- * A valid room is enclosed (≤750 cells, ≥60), fully backed by player-placed
+ * A valid room is enclosed (40–750 cells), fully backed by player-placed
  * walls, has a door, a light source, a table and a chair.
  */
 export function checkRoom(world: World, x: number, y: number): RoomCheck {
@@ -70,7 +70,7 @@ export function checkRoom(world: World, x: number, y: number): RoomCheck {
       stack.push(nx, ny);
     }
   }
-  if (seen.size < MIN_CELLS) return { valid: false, reason: 'This room is too small.' };
+  if (seen.size < MIN_CELLS) return { valid: false, reason: `This room is too small (${seen.size} of at least ${MIN_CELLS} open tiles).` };
   if (missingWall) return { valid: false, reason: 'This room is missing background walls.' };
   if (!door) return { valid: false, reason: 'This room needs a door.' };
   if (!light) return { valid: false, reason: 'This room needs a light source.' };

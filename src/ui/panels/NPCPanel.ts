@@ -23,10 +23,20 @@ export class NPCPanel {
     s.host.ui.root.appendChild(this.el);
   }
 
+  /** Dock under the backpack when the inventory is open; otherwise sit in that same spot on its own. */
+  private place(): void {
+    const docked = this.s.inventory.isOpen;
+    const parent = docked ? this.s.inventory.dock : this.s.host.ui.root;
+    if (this.el.parentElement !== parent) parent.appendChild(this.el);
+    this.el.classList.toggle('docked', docked);
+  }
+
   open(n: NPC): void {
     this.npc = n;
     this.isOpen = true;
     this.mode = 'talk';
+    this.s.inventory.closeChest();
+    this.place();
     this.el.style.display = '';
     n.talking = 60 * 60;
     this.renderTalk(this.s.npcs.dialogue(this.s, n));
@@ -125,13 +135,14 @@ export class NPCPanel {
     });
     this.body.append(
       this.header(),
-      h('div', { class: 'hint' }, 'Click to buy (Shift: buy 10). To sell, pick up an item in your inventory (E) and click the sell slot, or use Sell Held.'),
+      h('div', { class: 'hint' }, 'Click to buy (Shift: 10). Sell: drop an item on the red slot, or Sell Held.'),
       grid,
       h('div', { class: 'row', style: 'margin-top:6px' }, h('span', { class: 'label-sm' }, 'Sell'), sellSlot.el, h('button', { class: 'btn small', onclick: () => this.sellHeld() }, 'Sell Held'), h('div', { class: 'spacer' }), h('button', { class: 'btn small', onclick: () => this.renderTalk(this.s.npcs.dialogue(this.s, n)) }, 'Back'), h('button', { class: 'btn small', onclick: () => this.close() }, 'Close')),
       ...(this.buyback.length ? [h('div', { class: 'label-sm' }, 'Buy back')] : []),
       bbGrid,
     );
     if (!this.s.inventory.isOpen) this.s.inventory.open();
+    this.place();
   }
 
   private buy(id: string, price: number, qty: number): void {
@@ -182,6 +193,7 @@ export class NPCPanel {
 
   update(): void {
     if (!this.npc) return;
+    this.place();
     const p = this.s.player;
     if (Math.hypot(this.npc.cx - p.cx, this.npc.cy - p.cy) > 16 * 9 || p.dead) this.close();
     else this.npc.talking = Math.max(this.npc.talking, 30);

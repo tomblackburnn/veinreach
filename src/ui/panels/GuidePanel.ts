@@ -265,7 +265,7 @@ export class GuidePanel {
       this.h2('Townsfolk & Housing'),
       h('div', { class: 'gbox' },
         h('b', {}, 'A valid house needs:'),
-        h('ul', {}, ...['Player-placed background walls behind every open tile', 'A door (or platform) in its outer boundary', 'A light source (torch, lamp...)', 'A table or workbench', 'A chair', 'Between 60 and 750 enclosed tiles'].map((t) => h('li', {}, t))),
+        h('ul', {}, ...['Player-placed background walls behind every open tile', 'A door (or platform) in its outer boundary', 'A light source (torch, lamp...)', 'A table or workbench', 'A chair', 'Between 40 and 750 enclosed tiles'].map((t) => h('li', {}, t))),
         this.p('Talk to a townsperson and press Housing to check a room. New residents arrive during the day when a free house is available.'),
       ),
     );

@@ -36,6 +36,33 @@ describe('housing & NPCs', () => {
   const g = generateWorldSync({ name: 'npc', seed: 'npc-town', width: 500, height: 280 });
   const w = g.world;
 
+  it('accepts rooms from 40 open tiles upward', () => {
+    const wg = generateWorldSync({ name: 'min', seed: 'min-room', width: 400, height: 260 });
+    const room = (x0: number, floor: number, iw: number, ih: number) => {
+      const plank = TileRegistry.id('timber');
+      const wall = TileRegistry.wallId('timber_wall');
+      const top = floor - ih - 1;
+      for (let y = top - 1; y <= floor + 1; y++) for (let x = x0 - 1; x <= x0 + iw + 2; x++) wg.world.setFg(x, y, 0, 0);
+      for (let y = top; y <= floor; y++) {
+        for (let x = x0; x <= x0 + iw + 1; x++) {
+          const edge = x === x0 || x === x0 + iw + 1 || y === top || y === floor;
+          wg.world.setFg(x, y, edge ? plank : 0, 0);
+          if (!edge) wg.world.setWall(x, y, wall);
+        }
+      }
+      for (let y = floor - 3; y < floor; y++) wg.world.setFg(x0, y, 0, 0);
+      placeObjectRaw(wg.world, x0, floor - 3, TileRegistry.id('door_closed'));
+      placeObjectRaw(wg.world, x0 + 2, floor - 2, TileRegistry.id('chair'));
+      placeObjectRaw(wg.world, x0 + 3, floor - 1, TileRegistry.id('workbench'));
+      wg.world.setFg(x0 + iw, top + 1, TileRegistry.id('torch'), 0);
+      return checkRoom(wg.world, x0 + 2, floor - 1);
+    };
+    expect(room(40, 60, 8, 5).valid).toBe(true); // 40 tiles
+    const small = room(80, 60, 13, 3); // 39 tiles
+    expect(small.valid).toBe(false);
+    expect(small.reason).toMatch(/too small \(39 of at least 40/);
+  });
+
   it('validates rooms with helpful reasons', () => {
     const a = buildHouse(w, g.spawnX + 20, g.spawnY - 2);
     expect(checkRoom(w, a.cx, a.cy).valid).toBe(true);

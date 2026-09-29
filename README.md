@@ -105,7 +105,7 @@ Every new character starts with the **Delver's Almanac**. Press **G** or use the
 5. **Nhal'Zyra, the Emberwyrm.** Offer a *Brimstone Chalice* in Emberdeep.
 6. **Solmara, the Unmade Star.** Raise an *Astral Sigil* to the night sky. This is the final boss, with three phases and an arena.
 
-Housing rule: an NPC room needs player-placed background walls, a door (or platform), a light source, a table or workbench, a chair, and 60–750 enclosed tiles.
+Housing rule: an NPC room needs player-placed background walls, a door (or platform), a light source, a table or workbench, a chair, and 40–750 enclosed tiles.
 
 ## Architecture
 
