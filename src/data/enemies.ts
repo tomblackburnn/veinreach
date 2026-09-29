@@ -159,7 +159,7 @@ export const ENEMIES: EnemyDef[] = [
   {
     id: 'tunnelgrub', name: 'Tunnel Grub', life: 60, damage: 16, defense: 4, kbResist: 1, w: 18, h: 18, ai: 'worm', p: { speed: 4.5, segments: 7, turn: 0.07 },
     sprite: { kind: 'worm', colors: ['#c09070', '#8a6050', '#e0b090'] }, loot: 'e_tunnelgrub',
-    spawn: [{ zones: ['underground', 'cavern'], weight: 3 }],
+    spawn: [{ zones: ['underground', 'cavern'], weight: 1 }],
   },
   {
     id: 'ossuary_archer', name: 'Ossuary Archer', life: 70, damage: 18, defense: 8, kbResist: 0.3, w: 18, h: 40, ai: 'archer', p: { speed: 1.1, range: 360, cooldown: 110, jump: 6.5 },

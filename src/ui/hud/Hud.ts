@@ -172,8 +172,9 @@ export class Hud {
         text = hints[key] ?? '';
       }
       if (text) {
-        this.hoverEl.style.left = `${inp.mouseX + 18}px`;
-        this.hoverEl.style.top = `${inp.mouseY + 14}px`;
+        const z = s.host.ui.scale || 1;
+        this.hoverEl.style.left = `${(inp.mouseX + 18) / z}px`;
+        this.hoverEl.style.top = `${(inp.mouseY + 14) / z}px`;
       }
     }
     this.set('hover', text, () => {

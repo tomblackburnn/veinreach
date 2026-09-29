@@ -67,20 +67,44 @@ export class SpawnSystem {
     return out;
   }
 
+  /** Worms currently hunting near the player (heads only). */
+  private wormsNear(ctx: GameContext): number {
+    const p = ctx.player;
+    return ctx.entities.enemies.filter((e) => e.def.ai === 'worm' && !e.head && Math.abs(e.cx - p.cx) < 16 * 120).length;
+  }
+
+  /**
+   * Pick a location first, then an enemy that suits it. Open cave air favours
+   * walkers/fliers; worms may only appear inside solid rock, at most one at a
+   * time, and only occasionally — otherwise they dominate underground spawns
+   * because random points are usually inside rock.
+   */
   trySpawn(ctx: GameContext): boolean {
     const p = ctx.player;
     const w = ctx.world;
     const cam = ctx.camera;
-    for (let attempt = 0; attempt < 8; attempt++) {
+    for (let attempt = 0; attempt < 10; attempt++) {
       const side = Math.random() < 0.5 ? -1 : 1;
       const tx = p.tileX + side * (MIN_DIST + Math.floor(Math.random() * (MAX_DIST - MIN_DIST)));
       let ty = p.tileY + Math.floor(Math.random() * 50) - 25;
       if (tx < 5 || tx >= w.width - 5 || ty < 5 || ty >= w.height - 5) continue;
+      // Look upward for open air if we landed inside rock.
+      let inRock = w.isSolid(tx, ty);
+      if (inRock) {
+        for (let k = 1; k <= 14; k++) {
+          if (!w.isSolid(tx, ty - k)) {
+            ty -= k;
+            inRock = false;
+            break;
+          }
+        }
+      }
       // Never spawn visibly on screen.
       if (tx * 16 > cam.left - 64 && tx * 16 < cam.right + 64 && ty * 16 > cam.top - 64 && ty * 16 < cam.bottom + 64) continue;
       const zone = w.zoneAt(ty);
       const biome = detectBiome(w, tx, ty);
-      const cands = this.candidates(ctx, biome, zone);
+      let cands = this.candidates(ctx, biome, zone).filter((c) => (c.def.ai === 'worm') === inRock);
+      if (inRock && (this.wormsNear(ctx) >= 1 || Math.random() > 0.2)) continue;
       if (!cands.length) continue;
       let total = 0;
       for (const c of cands) total += c.weight;
@@ -93,16 +117,15 @@ export class SpawnSystem {
           break;
         }
       }
-      const flying = !!def.flying || def.ai === 'worm' || def.ai === 'ghost';
-      if (!flying) {
+      cands = [];
+      const flying = !!def.flying || def.ai === 'ghost';
+      if (def.ai !== 'worm' && !flying) {
         // Drop to the floor.
         let steps = 0;
         while (ty < w.height - 2 && !w.isSolid(tx, ty + 1) && steps++ < 30) ty++;
         if (!w.isSolid(tx, ty + 1)) continue;
       }
-      if (def.ai === 'worm') {
-        if (!w.isSolid(tx, ty)) continue;
-      } else {
+      if (def.ai !== 'worm') {
         const px = tx * 16 + 8 - def.w / 2;
         const py = (ty + 1) * 16 - def.h;
         if (rectHitsSolid(w, px, py, def.w, def.h)) continue;

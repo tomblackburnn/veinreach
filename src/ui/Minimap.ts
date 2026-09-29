@@ -134,8 +134,9 @@ export class Minimap {
   renderFull(container: HTMLElement): void {
     const s = this.s;
     const w = s.world;
-    const maxW = window.innerWidth - 100;
-    const maxH = window.innerHeight - 100;
+    const z = s.host.ui.scale || 1;
+    const maxW = window.innerWidth / z - 100;
+    const maxH = window.innerHeight / z - 100;
     const scale = Math.min(maxW / w.width, maxH / w.height);
     if (!this.full) {
       this.full = document.createElement('canvas');

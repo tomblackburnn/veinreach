@@ -72,7 +72,7 @@ export function buildSettingsPanel(host: GameHost, onBack: () => void): HTMLElem
     h('h3', {}, 'Display'),
     h('div', { class: 'settings-grid' },
       ...slider('UI scale', 'uiScale', 0.7, 1.6, 0.05, pct),
-      ...slider('Zoom', 'zoom', 1, 4, 0.25, (v) => `${v}×`),
+      ...slider('Game zoom', 'zoom', 1, 4, 0.25, (v) => `${v}×`),
       ...slider('Particles', 'particles', 0, 1, 0.1, pct),
       ...toggle('Screen shake', 'screenShake'),
       ...toggle('Smooth lighting', 'smoothLighting'),

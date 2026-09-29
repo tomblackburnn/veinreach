@@ -53,6 +53,37 @@ describe('simulation', () => {
     err.mockRestore();
   });
 
+  it('underground spawning is varied and never floods the player with worms', () => {
+    const ctx = fresh();
+    const w = ctx.world;
+    // Stand in a cave in the underground layer.
+    let spot: [number, number] | null = null;
+    for (let x = 60; x < w.width - 60 && !spot; x += 3) {
+      for (let y = w.layers.undergroundY + 5; y < w.layers.deepY; y++) {
+        if (!w.isSolid(x, y) && !w.isSolid(x, y - 1) && !w.isSolid(x, y - 2) && w.isSolid(x, y + 1)) {
+          spot = [x, y];
+          break;
+        }
+      }
+    }
+    ctx.player.teleportTo(ctx, spot![0], spot![1]);
+    ctx.step(5);
+    const counts: Record<string, number> = {};
+    let total = 0;
+    for (let i = 0; i < 400; i++) {
+      if (ctx.spawns.trySpawn(ctx)) {
+        const e = ctx.entities.enemies[ctx.entities.enemies.length - 1];
+        counts[e.def.id] = (counts[e.def.id] ?? 0) + 1;
+        total++;
+      }
+      // Worms stay alive (cap test); everything else is cleared.
+      ctx.entities.enemies = ctx.entities.enemies.filter((e) => e.def.ai === 'worm' && !e.head);
+    }
+    expect(total).toBeGreaterThan(100);
+    expect(counts.tunnelgrub ?? 0).toBeLessThanOrEqual(1);
+    expect(Object.keys(counts).length).toBeGreaterThanOrEqual(3);
+  });
+
   it('enemies can be killed and drop loot', () => {
     const ctx = fresh();
     const e = ctx.spawnEnemy('gloop', ctx.player.cx + 60, ctx.player.bottom)!;

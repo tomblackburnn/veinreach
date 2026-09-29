@@ -1,5 +1,5 @@
 import { h, clear } from '../../utils/dom';
-import type { MenuHost } from './MenuHost';
+import type { MenuHost, CharacterNext } from './MenuHost';
 import type { CharacterSave } from '../../save/types';
 import { drawPlayer } from '../../rendering/sprites/playerSprite';
 import { DIFFICULTIES, HAIR_COLORS, HAIR_STYLES, SKIN_TONES, CLOTH_COLORS, randomAppearance, type Appearance, type Difficulty } from '../../entities/player/Appearance';
@@ -18,9 +18,18 @@ function preview(app: Appearance, armorIds: (string | null)[] = [], scale = 4): 
 
 const hours = (ticks: number) => `${(ticks / 60 / 3600).toFixed(1)}h`;
 
-export function characterSelect(host: MenuHost, next: 'worlds' | 'multiplayer'): HTMLElement {
+/** Continue after a character has been chosen or created. */
+function proceed(host: MenuHost, c: CharacterSave, next: CharacterNext): void {
+  if (next === 'worlds') host.showWorlds(c);
+  else if (next === 'multiplayer') host.showMultiplayer(c);
+  else void host.startWorld(c, next.world, next.isNew);
+}
+
+export function characterSelect(host: MenuHost, next: CharacterNext): HTMLElement {
+  const heading = typeof next === 'object' ? `Who will play ${next.world.meta.name}?` : 'Select a Character';
+  const back = () => (typeof next === 'object' ? host.showWorlds(null) : host.showTitle());
   const list = h('div', { class: 'list' });
-  const screen = h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel' }, h('h2', {}, 'Select a Character'), list, h('div', { class: 'row' },
+  const screen = h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel' }, h('h2', {}, heading), list, h('div', { class: 'row' },
     h('button', { class: 'btn good', onclick: () => host.showCharacterCreate(next) }, 'Create'),
     h('button', { class: 'btn small', onclick: async () => {
       const text = await host.ui.pickFile();
@@ -34,7 +43,7 @@ export function characterSelect(host: MenuHost, next: 'worlds' | 'multiplayer'):
       }
     } }, 'Import'),
     h('div', { class: 'spacer' }),
-    h('button', { class: 'btn', onclick: () => host.showTitle() }, 'Back'),
+    h('button', { class: 'btn', onclick: back }, 'Back'),
   )));
   void host.saves.listCharacters().then((chars) => {
     clear(list);
@@ -47,7 +56,7 @@ export function characterSelect(host: MenuHost, next: 'worlds' | 'multiplayer'):
           h('span', { class: 'muted' }, `${DIFFICULTIES[c.difficulty].name} · ${c.baseLife} life · ${c.baseMana} mana · played ${hours(c.playTicks)}${c.permadead ? ' · FALLEN' : ''}`),
         ),
         h('div', { class: 'spacer' }),
-        h('button', { class: 'btn small good', disabled: c.permadead, onclick: (e: Event) => { e.stopPropagation(); if (next === 'worlds') host.showWorlds(c); else host.showMultiplayer(c); } }, 'Select'),
+        h('button', { class: 'btn small good', disabled: c.permadead, onclick: (e: Event) => { e.stopPropagation(); proceed(host, c, next); } }, typeof next === 'object' ? 'Play' : 'Select'),
         h('button', { class: 'btn small', onclick: (e: Event) => { e.stopPropagation(); host.ui.download(`${c.name.replace(/\W+/g, '_')}.veinreach-character.json`, host.saves.exportCharacter(c)); } }, 'Export'),
         h('button', { class: 'btn small danger', onclick: async (e: Event) => {
           e.stopPropagation();
@@ -57,14 +66,14 @@ export function characterSelect(host: MenuHost, next: 'worlds' | 'multiplayer'):
           }
         } }, 'Delete'),
       );
-      item.addEventListener('dblclick', () => !c.permadead && (next === 'worlds' ? host.showWorlds(c) : host.showMultiplayer(c)));
+      item.addEventListener('dblclick', () => !c.permadead && proceed(host, c, next));
       list.append(item);
     }
   });
   return screen;
 }
 
-export function characterCreate(host: MenuHost, next: 'worlds' | 'multiplayer'): HTMLElement {
+export function characterCreate(host: MenuHost, next: CharacterNext): HTMLElement {
   let app: Appearance = randomAppearance();
   let difficulty: Difficulty = 'wanderer';
   const nameInput = h('input', { type: 'text', value: '', placeholder: 'Name your hero', maxlength: '24' });
@@ -114,8 +123,7 @@ export function characterCreate(host: MenuHost, next: 'worlds' | 'multiplayer'):
     }
     const c: CharacterSave = newCharacter(name, app, difficulty);
     await host.saves.saveCharacter(c);
-    if (next === 'worlds') host.showWorlds(c);
-    else host.showMultiplayer(c);
+    proceed(host, c, next);
   };
   return h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel' },
     h('h2', {}, 'Create a Character'),

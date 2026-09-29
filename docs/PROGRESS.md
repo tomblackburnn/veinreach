@@ -7,7 +7,7 @@ _Last updated: 2026-09-29_
 | Check | Status |
 |---|---|
 | `npm run typecheck` (client + server) | ✅ passing |
-| `npm run test` | ✅ 46 tests passing (unit + headless simulation) |
+| `npm run test` | ✅ 57 tests passing (unit + headless simulation) |
 | `npm run build` | ✅ passing (~440 kB JS, ~140 kB gzipped) |
 | Browser runtime | ✅ Verified manually in Chromium: menus, character/world creation, generation, mining, placing, crafting, chests, persistence across reload, all five bosses rendered and fighting. No console errors. |
 
@@ -67,6 +67,9 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- Fixed: the UI Scale setting now scales every menu, HUD and panel (CSS zoom on the UI layer); "Zoom" is relabelled "Game zoom" (it is the in-game camera).
+- Fixed: the main-menu **Worlds** button now opens a world manager; pressing Play there asks which character should play.
+- Fixed: too many Tunnel Grubs underground. Spawning now picks a location first; worms spawn only inside rock, at most one at a time, with a low chance.
 - World generation about 3× faster (medium world ~0.25 s in Node): sky-light columns are no longer rescanned per tile during generation.
 - `GEN_VERSION` is stored in world metadata; loading a world made by an older generator shows a warning.
 - Shorter trees with larger crowns; surface tiles are now fully sky-lit.

@@ -1,4 +1,4 @@
-import type { MenuHost } from '../ui/menus/MenuHost';
+import type { MenuHost, CharacterNext } from '../ui/menus/MenuHost';
 import { InputManager } from '../engine/InputManager';
 import { AudioManager } from '../audio/AudioManager';
 import { SaveManager } from '../save/SaveManager';
@@ -118,16 +118,16 @@ export class Game implements MenuHost {
     this.audio.setMusic('title');
     this.ui.show(titleScreen(this));
   }
-  showCharacters(next: 'worlds' | 'multiplayer'): void {
+  showCharacters(next: CharacterNext): void {
     this.ui.show(characterSelect(this, next));
   }
-  showCharacterCreate(next: 'worlds' | 'multiplayer'): void {
+  showCharacterCreate(next: CharacterNext): void {
     this.ui.show(characterCreate(this, next));
   }
-  showWorlds(c: CharacterSave): void {
+  showWorlds(c: CharacterSave | null): void {
     this.ui.show(worldSelect(this, c));
   }
-  showWorldCreate(c: CharacterSave): void {
+  showWorldCreate(c: CharacterSave | null): void {
     this.ui.show(worldCreate(this, c));
   }
   showSettings(): void {

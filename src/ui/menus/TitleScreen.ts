@@ -11,7 +11,7 @@ export function titleScreen(host: MenuHost): HTMLElement {
     h('div', { class: 'menu-buttons', style: 'margin-top:24px' },
       h('button', { class: 'btn', onclick: () => host.showCharacters('worlds') }, 'Play'),
       h('button', { class: 'btn', onclick: () => host.showCharacters('worlds') }, 'Characters'),
-      h('button', { class: 'btn', onclick: () => host.showCharacters('worlds') }, 'Worlds'),
+      h('button', { class: 'btn', onclick: () => host.showWorlds(null) }, 'Worlds'),
       h('button', { class: 'btn', onclick: () => host.showCharacters('multiplayer') }, 'Multiplayer (Experimental)'),
       h('button', { class: 'btn', onclick: () => host.showSettings() }, 'Settings'),
       h('button', { class: 'btn', onclick: () => host.showCredits() }, 'Credits'),

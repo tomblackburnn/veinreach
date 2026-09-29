@@ -26,10 +26,14 @@ export class UIManager {
     });
   }
 
+  /** Scale every menu/HUD element (CSS zoom on the UI layer). */
   setScale(s: number): void {
+    this.scale = s;
     document.documentElement.style.setProperty('--ui-scale', String(s));
-    document.documentElement.style.fontSize = `${20 * s}px`;
+    this.root.style.setProperty('zoom', String(s));
   }
+
+  scale = 1;
 
   show(el: HTMLElement): void {
     this.hideScreen();

@@ -13,10 +13,12 @@ const ago = (t: number) => {
   return `${Math.floor(m / 1440)}d ago`;
 };
 
-export function worldSelect(host: MenuHost, c: CharacterSave): HTMLElement {
+export function worldSelect(host: MenuHost, c: CharacterSave | null): HTMLElement {
+  // Without a character (opened from the main menu) Play asks who will play.
+  const play = (w: WorldRecord) => (c ? void host.startWorld(c, w, false) : host.showCharacters({ world: w, isNew: false }));
   const list = h('div', { class: 'list' });
   const screen = h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel' },
-    h('h2', {}, `Select a World — ${c.name}`),
+    h('h2', {}, c ? `Select a World — ${c.name}` : 'Worlds'),
     list,
     h('div', { class: 'row' },
       h('button', { class: 'btn good', onclick: () => host.showWorldCreate(c) }, 'Create'),
@@ -32,7 +34,7 @@ export function worldSelect(host: MenuHost, c: CharacterSave): HTMLElement {
         }
       } }, 'Import'),
       h('div', { class: 'spacer' }),
-      h('button', { class: 'btn', onclick: () => host.showCharacters('worlds') }, 'Back'),
+      h('button', { class: 'btn', onclick: () => (c ? host.showCharacters('worlds') : host.showTitle()) }, 'Back'),
     ),
   ));
   void host.saves.listWorlds().then((worlds) => {
@@ -45,7 +47,7 @@ export function worldSelect(host: MenuHost, c: CharacterSave): HTMLElement {
           h('span', { class: 'muted' }, `${WORLD_SIZES[w.meta.size].label} · seed ${w.meta.seed} · day ${w.state.day} · ${w.meta.bossesDefeated}/5 bosses${w.meta.unsealed ? ' · Unsealed' : ''} · ${ago(w.meta.lastPlayed)}`),
         ),
         h('div', { class: 'spacer' }),
-        h('button', { class: 'btn small good', onclick: (e: Event) => { e.stopPropagation(); host.startWorld(c, w, false); } }, 'Play'),
+        h('button', { class: 'btn small good', onclick: (e: Event) => { e.stopPropagation(); play(w); } }, 'Play'),
         h('button', { class: 'btn small', onclick: async (e: Event) => { e.stopPropagation(); host.ui.download(`${w.meta.name.replace(/\W+/g, '_')}.veinreach-world.json`, await host.saves.exportWorld(w.id)); } }, 'Export'),
         h('button', { class: 'btn small danger', onclick: async (e: Event) => {
           e.stopPropagation();
@@ -55,7 +57,7 @@ export function worldSelect(host: MenuHost, c: CharacterSave): HTMLElement {
           }
         } }, 'Delete'),
       );
-      item.addEventListener('dblclick', () => host.startWorld(c, w, false));
+      item.addEventListener('dblclick', () => play(w));
       list.append(item);
     }
   });
@@ -64,7 +66,7 @@ export function worldSelect(host: MenuHost, c: CharacterSave): HTMLElement {
 
 const WORLD_NAMES = ['Emberfall', 'Hollowmere', 'Cindervale', 'Glimmerreach', 'Thornwood', 'Rustmoor', 'Duskhaven', 'Stonewhisper', 'Aetherdeep', 'Mossgrave'];
 
-export function worldCreate(host: MenuHost, c: CharacterSave): HTMLElement {
+export function worldCreate(host: MenuHost, c: CharacterSave | null): HTMLElement {
   const name = h('input', { type: 'text', value: WORLD_NAMES[Math.floor(Math.random() * WORLD_NAMES.length)], maxlength: '32' });
   const seed = h('input', { type: 'text', value: randomSeedString(), maxlength: '40' });
   for (const i of [name, seed]) {
@@ -85,7 +87,8 @@ export function worldCreate(host: MenuHost, c: CharacterSave): HTMLElement {
       meta: { id, name: name.value.trim() || 'Unnamed World', seed: seed.value.trim() || randomSeedString(), size, width: dims.width, height: dims.height, createdAt: Date.now(), lastPlayed: Date.now(), version: SAVE_VERSION, genVersion: GEN_VERSION, bossesDefeated: 0, unsealed: false },
       state: defaultWorldState(),
     };
-    host.startWorld(c, rec, true);
+    if (c) void host.startWorld(c, rec, true);
+    else host.showCharacters({ world: rec, isNew: true });
   };
   return h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel' },
     h('h2', {}, 'Create a World'),
@@ -95,7 +98,7 @@ export function worldCreate(host: MenuHost, c: CharacterSave): HTMLElement {
       h('span', {}, 'Size'), sizeRow,
     ),
     h('div', { class: 'hint' }, 'The same seed and size always produce the same world.'),
-    h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => host.showWorlds(c) }, 'Back'), h('div', { class: 'spacer' }), h('button', { class: 'btn good', onclick: create }, 'Create & Play')),
+    h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => host.showWorlds(c) }, 'Back'), h('div', { class: 'spacer' }), h('button', { class: 'btn good', onclick: create }, c ? 'Create & Play' : 'Create & Choose Character')),
   ));
 }
 

@@ -86,7 +86,7 @@ input[type=text], input[type=number], select {
 input[type=text]:focus { box-shadow: inset 0 0 0 1px var(--gold); }
 input[type=range] { accent-color: var(--gold); width: 220px; }
 input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
-.list { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; padding-right: 6px; }
+.list { display: flex; flex-direction: column; gap: 8px; max-height: calc(50vh / var(--ui-scale)); overflow-y: auto; padding-right: 6px; }
 .list::-webkit-scrollbar, .scroll::-webkit-scrollbar { width: 10px; }
 .list::-webkit-scrollbar-thumb, .scroll::-webkit-scrollbar-thumb { background: var(--panel-3); border: 2px solid var(--edge); }
 .list-item { display: flex; gap: 12px; align-items: center; background: var(--panel-2); border: 3px solid var(--edge); padding: 8px 10px; cursor: pointer; }
@@ -101,7 +101,7 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .menu-buttons { display: flex; flex-direction: column; gap: 10px; min-width: 280px; }
 .menu-buttons .btn { font-size: 18px; padding: 12px; }
 .footer { position: absolute; bottom: 12px; left: 16px; right: 16px; display: flex; justify-content: space-between; color: var(--muted); font-size: 16px; }
-.menu-panel { width: min(760px, 92vw); max-height: 88vh; overflow-y: auto; }
+.menu-panel { width: min(760px, calc(92vw / var(--ui-scale))); max-height: calc(88vh / var(--ui-scale)); overflow-y: auto; }
 .form-grid { display: grid; grid-template-columns: 160px 1fr; gap: 10px 14px; align-items: center; }
 .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .swatch { width: 26px; height: 26px; border: 3px solid var(--edge); cursor: pointer; }
@@ -154,9 +154,9 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .buff .t { position: absolute; bottom: -14px; left: 0; right: 0; text-align: center; font-size: 13px; text-shadow: 1px 1px 0 #000; }
 .wallet { font-family: var(--font-head); font-size: 12px; color: var(--gold-2); text-shadow: 2px 2px 0 #000; display: flex; align-items: center; gap: 6px; }
 .info { font-size: 18px; text-shadow: 1px 1px 0 #000; text-align: right; }
-.messages { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 2px; max-width: 46vw; }
+.messages { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 2px; max-width: calc(46vw / var(--ui-scale)); }
 .messages .msg { font-size: 20px; text-shadow: 2px 2px 0 #000; transition: opacity 0.6s; }
-.bossbar { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); width: min(620px, 70vw); text-align: center; }
+.bossbar { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); width: min(620px, calc(70vw / var(--ui-scale))); text-align: center; }
 .bossbar .bname { font-family: var(--font-head); font-size: 16px; color: #ffd0d0; text-shadow: 2px 2px 0 #000; margin-bottom: 4px; }
 .bossbar .bar { width: 100%; height: 22px; }
 .bossbar .bar > .fill { background: linear-gradient(#ff4a6a, #8a0a2a); }
@@ -183,7 +183,7 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .console input { width: 100%; margin-top: 6px; }
 
 /* ---------- Panels (inventory etc.) ---------- */
-.inv-wrap { position: absolute; top: 70px; left: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; pointer-events: auto; max-width: calc(100vw - 20px); max-height: calc(100vh - 80px); overflow-y: auto; }
+.inv-wrap { position: absolute; top: 70px; left: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; pointer-events: auto; max-width: calc(100vw / var(--ui-scale) - 20px); max-height: calc(100vh / var(--ui-scale) - 80px); overflow-y: auto; }
 .inv-wrap * { pointer-events: auto; }
 .grid { display: grid; grid-template-columns: repeat(10, 46px); gap: 4px; }
 .equip-grid { display: grid; grid-template-columns: repeat(2, 46px); gap: 4px; }
@@ -197,8 +197,8 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .cursor-item { position: fixed; pointer-events: none; z-index: 100; width: 36px; height: 36px; }
 .cursor-item img { width: 32px; height: 32px; image-rendering: pixelated; }
 .cursor-item .count { position: absolute; right: -4px; bottom: -6px; font-size: 18px; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; }
-.tooltip { position: fixed; z-index: 120; pointer-events: none; background: rgba(18,12,26,0.95); border: 3px solid var(--edge); box-shadow: inset 0 0 0 2px var(--panel-3); padding: 8px 10px; max-width: 340px; font-size: 18px; line-height: 1.05; }
-.tooltip .tname { font-family: var(--font-head); font-size: 13px; margin-bottom: 4px; }
+.tooltip { position: fixed; z-index: 120; pointer-events: none; background: rgba(18,12,26,0.95); border: 3px solid var(--edge); box-shadow: inset 0 0 0 2px var(--panel-3); padding: 8px 10px; max-width: calc(340px * var(--ui-scale)); font-size: calc(18px * var(--ui-scale)); line-height: 1.05; }
+.tooltip .tname { font-family: var(--font-head); font-size: calc(13px * var(--ui-scale)); margin-bottom: 4px; }
 .tooltip .tl { color: var(--text); }
 .tooltip .tm { color: var(--muted); }
 .tooltip .tg { color: var(--good); }
