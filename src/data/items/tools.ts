@@ -36,6 +36,10 @@ export const TOOL_ITEMS: ItemDef[] = [
     rarity: 2, maxStack: 1, value: 300, icon: { t: 'compass', c: ['#f5cf3c', '#6fe0d0'] }, useTime: 60, useStyle: 'hold', utility: 'recall',
   },
   {
+    id: 'delvers_almanac', name: 'Delver\u2019s Almanac', description: 'Everything you need to know to beat Veinreach: bosses, loadouts, armour and more. Use it (or press G) to read.',
+    category: 'utility', rarity: 1, maxStack: 1, value: 5, icon: { t: 'tome', c: ['#d9a441', '#5a3a1e'] }, useTime: 20, useStyle: 'hold', utility: 'guide',
+  },
+  {
     id: 'bucket', name: 'Empty Bucket', description: 'Scoop up water or magma.', category: 'utility', rarity: 0, maxStack: 1, value: 20,
     icon: { t: 'bucket', c: ['#a7b3c2'] }, useTime: 15, useStyle: 'hold', liquid: { action: 'collect' },
   },

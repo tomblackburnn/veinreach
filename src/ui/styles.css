@@ -220,3 +220,43 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .creative-body { overflow-y: auto; padding-right: 6px; min-height: 0; }
 .creative-body h3 { margin: 6px 0 2px; }
 .creative-grid { max-height: calc(100vh / var(--ui-scale) - 330px); overflow-y: auto; }
+
+/* ---------- Delver's Almanac (guidebook) ---------- */
+.guide { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(980px, calc(96vw / var(--ui-scale))); height: min(720px, calc(100vh / var(--ui-scale) - 40px)); display: flex; flex-direction: column; background: #5a3a1e; border: 4px solid #2a1a0c; box-shadow: inset 0 0 0 3px #8a5a2b, 0 10px 0 rgba(0,0,0,0.4); padding: 10px; pointer-events: auto; z-index: 40; }
+.guide * { pointer-events: auto; }
+.guide-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 8px; }
+.guide-title { font-family: var(--font-head); font-size: 20px; color: #f5cf3c; text-shadow: 2px 2px 0 #2a1a0c; letter-spacing: 1px; }
+.guide-body { flex: 1; display: flex; gap: 8px; min-height: 0; }
+.guide-nav { width: 180px; display: flex; flex-direction: column; gap: 4px; }
+.guide-tab { font-family: var(--font-head); font-size: 11px; text-align: left; padding: 8px 10px; color: #3a2410; background: #d9c395; border: 3px solid #2a1a0c; cursor: pointer; }
+.guide-tab.small { font-size: 10px; padding: 5px 8px; }
+.guide-tab:hover { filter: brightness(1.08); }
+.guide-tab.sel { background: #f3e5c0; color: #1a0e04; box-shadow: inset 4px 0 0 #b8862a; }
+.guide-page { flex: 1; overflow-y: auto; background: #f1e3bf; color: #2a1a0c; border: 3px solid #2a1a0c; box-shadow: inset 0 0 40px rgba(120,80,30,0.25); padding: 14px 20px; font-size: 21px; line-height: 1.12; }
+.guide-page::-webkit-scrollbar { width: 12px; }
+.guide-page::-webkit-scrollbar-thumb { background: #a0784a; border: 3px solid #f1e3bf; }
+.guide-page h2 { font-family: var(--font-head); font-size: 17px; color: #6a3a10; margin: 8px 0 6px; border-bottom: 2px dashed #b8966a; padding-bottom: 4px; }
+.guide-page h3 { font-family: var(--font-head); font-size: 12px; color: #6a3a10; margin: 10px 0 4px; }
+.guide-page p { margin: 4px 0 8px; }
+.guide-page ul { margin: 4px 0 8px; padding-left: 22px; }
+.guide-page li { margin: 2px 0; }
+.gbox { background: #e6d3a6; border: 2px solid #b8966a; padding: 8px 12px; margin: 6px 0 10px; }
+.gsub { font-family: var(--font-head); font-size: 10px; color: #8a5a2b; text-transform: uppercase; letter-spacing: 1px; }
+.gbig { font-family: var(--font-head); font-size: 14px; color: #3a2410; }
+.gmuted { color: #7a5a3a; }
+.gwarn { color: #8a2aa0; font-weight: bold; }
+.gtag { font-family: var(--font-head); font-size: 10px; background: #d9c395; border: 2px solid #8a6a40; padding: 2px 6px; }
+.gline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0; }
+.gitems { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 2px 0 6px; }
+.gitem { display: inline-flex; align-items: center; gap: 4px; background: rgba(90,58,30,0.1); border: 1px solid rgba(90,58,30,0.25); padding: 1px 6px 1px 2px; cursor: help; }
+.gitem img { width: 22px; height: 22px; image-rendering: pixelated; background: #3a2a1a; border: 1px solid #2a1a0c; }
+.gitem span { color: #2a1a0c; }
+.gboss { border: 2px solid #b8966a; background: #ecdcb2; padding: 8px 12px; margin: 8px 0; }
+.gboss.done { background: #dfe8c0; border-color: #7a9a4a; }
+.gboss.next { border-color: #b8862a; box-shadow: 0 0 0 2px #f5cf3c; }
+.gboss-head { display: flex; align-items: center; gap: 10px; }
+.gboss-head img { width: 32px; height: 32px; image-rendering: pixelated; background: #3a2a1a; border: 2px solid #2a1a0c; }
+.gcheck { font-size: 24px; color: #4a7a2a; width: 22px; text-align: center; }
+.gset { border-bottom: 1px dashed #c8a878; padding: 6px 0; }
+.gset.done { background: rgba(120,160,60,0.12); }
+.gcols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 16px; margin: 6px 0; }

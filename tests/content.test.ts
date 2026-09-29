@@ -16,6 +16,9 @@ import { rollDamage, applyReduction, fallDamage, knockbackVelocity } from '../sr
 import { ProgressionSystem } from '../src/systems/ProgressionSystem';
 import { EventBus } from '../src/core/EventBus';
 import { LOADOUTS } from '../src/ui/panels/CreativePanel';
+import { GUIDE_STAGES, BOSS_GUIDE, STATION_GUIDE, ORE_GUIDE } from '../src/data/guide';
+import { SET_BONUSES } from '../src/data/items/armor';
+import { TileRegistry } from '../src/world/TileRegistry';
 import type { GameEvents } from '../src/core/context';
 
 describe('content integrity', () => {
@@ -67,6 +70,25 @@ describe('creative loadouts', () => {
       for (const id of l.accessories) expect(ItemRegistry.get(id).category, `${l.label}: ${id}`).toBe('accessory');
       expect(new Set(l.accessories).size).toBe(l.accessories.length);
     }
+  });
+});
+
+describe("Delver's Almanac", () => {
+  it('only references real items, sets, bosses and flags', () => {
+    for (const st of GUIDE_STAGES) {
+      for (const id of [st.pickaxe, ...st.melee, ...st.ranged, ...st.magic, ...st.summon, ...st.accessories, ...st.potions]) expect(ItemRegistry.has(id), `${st.id}: ${id}`).toBe(true);
+      for (const set of st.armor) expect(SET_BONUSES[set], `${st.id}: ${set}`).toBeDefined();
+      if (st.nextBoss) expect(BOSSES.some((b) => b.id === st.nextBoss)).toBe(true);
+    }
+    for (const b of BOSSES) expect(BOSS_GUIDE[b.id], b.id).toBeDefined();
+    for (const s of STATION_GUIDE) expect(ItemRegistry.get(s.item).placeTile && TileRegistry.get(TileRegistry.id(ItemRegistry.get(s.item).placeTile!)).station).toBeTruthy();
+    for (const o of ORE_GUIDE) expect(ItemRegistry.has(o.ore)).toBe(true);
+    // Recommended pickaxes can mine that stage's ores.
+    expect(ItemRegistry.get('delvers_almanac').utility).toBe('guide');
+  });
+
+  it('is in the starting kit and craftable by hand', () => {
+    expect(RecipeRegistry.forOutput('delvers_almanac')[0].station).toBeUndefined();
   });
 });
 

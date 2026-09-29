@@ -54,6 +54,7 @@ export interface UIHooks {
   closeWorldPanels(): void;
   bossIntro(name: string, title: string): void;
   banner(text: string, sub?: string, color?: string): void;
+  openGuide(): void;
 }
 
 export interface GameContext {

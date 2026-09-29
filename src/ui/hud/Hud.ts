@@ -241,7 +241,8 @@ export class Hud {
     }
     const frac = Math.max(0, b.life / b.maxLife);
     this.bossGhostFrac = Math.max(frac, this.bossGhostFrac - 0.004);
-    this.bossEl.style.display = '';
+    // Record the visible state so the 'none' branch above actually re-hides the bar.
+    this.set('boss', 'shown', () => (this.bossEl.style.display = ''));
     const label = `${b.bdef.name}, ${b.bdef.title}${b.phase > 1 ? ` — Phase ${b.phase}` : ''}  (${Math.ceil(b.life)}/${b.maxLife})`;
     this.set('bossName', label, () => (this.bossName.textContent = label));
     this.bossFill.style.transform = `scaleX(${frac})`;

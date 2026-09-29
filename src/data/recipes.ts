@@ -22,6 +22,7 @@ export const RECIPES: RecipeDef[] = [
   { out: 'torch', count: 3, ing: [['wood', 1], ['gel', 1]] },
   { out: 'torch', count: 4, ing: [['wood', 1], ['soot', 1]] },
   { out: 'workbench', ing: [['wood', 10]] },
+  { out: 'delvers_almanac', ing: [['wood', 3]] },
   { out: 'platform', count: 2, ing: [['wood', 1]] },
   { out: 'rope', count: 5, ing: [['silk', 1]] },
   // --- Workbench ---

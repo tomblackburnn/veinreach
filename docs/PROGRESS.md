@@ -7,7 +7,7 @@ _Last updated: 2026-09-29_
 | Check | Status |
 |---|---|
 | `npm run typecheck` (client + server) | ✅ passing |
-| `npm run test` | ✅ 60 tests passing (unit + headless simulation) |
+| `npm run test` | ✅ 66 tests passing (unit + headless simulation) |
 | `npm run build` | ✅ passing (~440 kB JS, ~140 kB gzipped) |
 | Browser runtime | ✅ Verified manually in Chromium: menus, character/world creation, generation, mining, placing, crafting, chests, persistence across reload, all five bosses rendered and fighting. No console errors. |
 
@@ -67,6 +67,11 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Delver's Almanac**: an in-game guidebook (G) with a live boss checklist, current objective, per-stage loadouts, armour sets, ores and tools, stations, townsfolk and events. Its content is validated by tests.
+- Fixed: the boss health bar now disappears after a boss is defeated or leaves.
+- **Obtainability audit** (`scripts/audit-items.ts` and a test): all 250 items are reachable. Leafthatch now drops from felled leafy trees.
+- Tests confirm the Unsealing seeds Umbralite, Aetherium and the Shardblight, and that each pickaxe tier mines the next ore.
+- Multiplayer clients no longer broadcast the (identical) Unsealing terrain changes to each other.
 - **Creative mode:** a Creative difficulty plus a Creative panel (C) with an item browser, boss/creature spawners, time/weather/event/progression controls, teleports, cheats (god, fly, instant mine, infinite items) and gear presets.
 - Tools dig about 2× faster: shorter use times and ×1.6 damage per hit. The starter pickaxe breaks soil in one hit and stone in two.
 - Multiplayer verified end to end with two real browser clients plus a scripted client: join, avatars, block edits both ways, chests, progression flags, chat, late-join catch-up and server autosave.

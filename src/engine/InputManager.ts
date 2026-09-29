@@ -17,7 +17,8 @@ export type Action =
   | 'drop'
   | 'zoomIn'
   | 'zoomOut'
-  | 'creative';
+  | 'creative'
+  | 'guide';
 
 export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   left: ['KeyA', 'ArrowLeft'],
@@ -38,6 +39,7 @@ export const DEFAULT_BINDINGS: Record<Action, string[]> = {
   zoomIn: ['Equal', 'NumpadAdd'],
   zoomOut: ['Minus', 'NumpadSubtract'],
   creative: ['KeyC'],
+  guide: ['KeyG'],
 };
 
 export const ACTION_LABELS: Record<Action, string> = {
@@ -59,6 +61,7 @@ export const ACTION_LABELS: Record<Action, string> = {
   zoomIn: 'Zoom in',
   zoomOut: 'Zoom out',
   creative: 'Creative panel',
+  guide: 'Delver\u2019s Almanac (guide)',
 };
 
 export class InputManager {

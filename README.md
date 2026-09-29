@@ -86,6 +86,7 @@ Dev convenience: open `http://localhost:5173/?autoplay` to resume the most recen
 | H / J | Quick heal / quick mana |
 | Q | Drop held item (Shift+Q drops the stack) |
 | + / − | Zoom |
+| G | Delver's Almanac (in-game guide) |
 | C | Creative panel (Creative characters, or with Developer mode on) |
 | Esc | Pause menu, or close panels |
 | Enter | Chat (multiplayer) |
@@ -94,6 +95,8 @@ Dev convenience: open `http://localhost:5173/?autoplay` to resume the most recen
 In the inventory, Shift-click quick-moves a stack, Ctrl-click trashes it, and right-click splits a stack or quick-equips armour. Every key can be rebound in **Settings → Key bindings**.
 
 ## How to play (progression)
+
+Every new character starts with the **Delver's Almanac**. Press **G** or use the book to open it. It has a live boss checklist, your current objective, loadouts for every stage and class, all armour sets, ores and pickaxe tiers, crafting stations, townsfolk and housing rules, and biomes and events. Existing characters can craft one by hand from 3 Timber, or buy one from the Pedlar.
 
 1. **Early game.** Chop trees, mine Brasslite and Ferrocite, and build a Workbench, a Smelter and an Anvil. Build a house to attract the Pedlar. Find Vital Crystals underground to raise your maximum health.
 2. **Gravelmaw, the Burrowing Tyrant.** Use a *Grubbling Lure* underground. Defeating it brings the Smith.

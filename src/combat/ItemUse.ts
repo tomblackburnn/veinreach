@@ -196,6 +196,10 @@ export class ItemUse {
       this.begin(p, def, useTime, 'hold');
       return;
     }
+    if (def.utility === 'guide') {
+      if (p.input.usePressed) ctx.ui.openGuide();
+      return;
+    }
     if (def.utility === 'recall') {
       if (!p.input.usePressed) return;
       this.begin(p, def, useTime, 'hold');

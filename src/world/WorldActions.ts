@@ -85,6 +85,7 @@ function neighbours(ctx: GameContext, x: number, y: number, drop: boolean): void
 function fell(ctx: GameContext, x: number, y: number, id: number, drop: boolean): void {
   const w = ctx.world;
   const cactus = id === T.cactus;
+  const kind = w.getFrame(x, y); // tree species, read before the tiles are removed
   let yy = y;
   let wood = 0;
   let top = false;
@@ -103,6 +104,8 @@ function fell(ctx: GameContext, x: number, y: number, id: number, drop: boolean)
       dropAt(ctx, 'wood', wood * 2 + (top ? 3 : 0), x, y);
       if (top && Math.random() < 0.6) dropAt(ctx, 'seedling', 1 + Math.floor(Math.random() * 2), x, y);
       if (top && Math.random() < 0.15) dropAt(ctx, 'mushroom', 1, x, y);
+      // Leafy crowns shed thatch (not dead or mushroom trees).
+      if (top && kind !== 3 && kind !== 4) dropAt(ctx, 'leafthatch', 2 + Math.floor(Math.random() * 3), x, y);
     }
   }
   if (top) {

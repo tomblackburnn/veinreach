@@ -15,6 +15,7 @@ export function newCharacter(name: string, appearance: Appearance, difficulty: D
     ['lesser_mending', 3],
     ['wood', 30],
     ['platform', 10],
+    ['delvers_almanac', 1],
   ];
   kit.forEach(([id, count], i) => (main[i] = { id, count }));
   return {

@@ -44,6 +44,7 @@ import { PauseMenu } from '../ui/panels/PauseMenu';
 import { Minimap } from '../ui/Minimap';
 import { DebugConsole } from '../ui/DebugConsole';
 import { CreativePanel } from '../ui/panels/CreativePanel';
+import { GuidePanel } from '../ui/panels/GuidePanel';
 import { renderHazards } from '../entities/bosses/hazards';
 import { ObjectSprites } from '../rendering/sprites/objectSprites';
 import { TileTextures } from '../rendering/sprites/tileTextures';
@@ -94,6 +95,7 @@ export class GameSession implements GameContext {
   readonly minimap: Minimap;
   readonly debug: DebugConsole;
   readonly creative: CreativePanel;
+  readonly guide: GuidePanel;
   readonly net: NetworkManager | null;
   readonly ui: UIHooks;
   tick = 0;
@@ -169,6 +171,7 @@ export class GameSession implements GameContext {
     this.minimap = new Minimap(this);
     this.debug = new DebugConsole(this);
     this.creative = new CreativePanel(this);
+    this.guide = new GuidePanel(this);
     this.ui = {
       openChest: (c: ChestData) => self.inventory.openChest(c),
       openNPC: (n: NPC) => self.npcPanel.open(n),
@@ -178,6 +181,7 @@ export class GameSession implements GameContext {
       },
       bossIntro: (name, title) => self.hud.bossIntro(name, title),
       banner: (t, s, c) => self.hud.banner(t, s, c),
+      openGuide: () => self.guide.open(),
     };
 
     // World change hooks.
@@ -313,6 +317,7 @@ export class GameSession implements GameContext {
     if (this.debug.open) return;
     if (inp.wasPressed('pause')) {
       if (this.hud.mapOpen) this.hud.toggleMap(false);
+      else if (this.guide.isOpen) this.guide.close();
       else if (this.creative.isOpen) this.creative.close();
       else if (this.npcPanel.isOpen) this.npcPanel.close();
       else if (this.inventory.isOpen) this.inventory.close();
@@ -326,6 +331,7 @@ export class GameSession implements GameContext {
     if (inp.wasPressed('map')) this.hud.toggleMap();
     if (inp.wasPressed('debug') && this.settings.developerMode) this.debug.toggle();
     if (inp.wasPressed('creative')) this.creative.toggle();
+    if (inp.wasPressed('guide')) this.guide.toggle();
     if (inp.wasPressed('zoomIn')) this.camera.targetZoom = Math.min(4, this.camera.targetZoom + 0.25);
     if (inp.wasPressed('zoomOut')) this.camera.targetZoom = Math.max(1, this.camera.targetZoom - 0.25);
     const hb = inp.hotbarPressed();
@@ -456,7 +462,16 @@ export class GameSession implements GameContext {
   private stepUnsealing(): void {
     if (!this.unsealGen) return;
     const t0 = performance.now();
-    while (performance.now() - t0 < 6) {
+    if (this.net) this.net.suppressCapture = true;
+    try {
+      this.stepUnsealingSlice(t0);
+    } finally {
+      if (this.net) this.net.suppressCapture = false;
+    }
+  }
+
+  private stepUnsealingSlice(t0: number): void {
+    while (this.unsealGen && performance.now() - t0 < 6) {
       const r = this.unsealGen.next();
       if (r.done) {
         this.unsealGen = null;
@@ -536,6 +551,7 @@ export class GameSession implements GameContext {
     this.pause.dispose();
     this.debug.dispose();
     this.creative.dispose();
+    this.guide.dispose();
   }
 
   // ---------------- Rendering ----------------

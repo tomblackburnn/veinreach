@@ -41,7 +41,7 @@ export const NPCS: NPCDef[] = [
     eventLines: ['This is terrible for business! Deal with it, would you?'],
     flagLines: { 'boss:gravelmaw': 'You killed that beetle? I’ll stock lead pellets now — word is a smith is coming to town.' },
     shop: [
-      { item: 'torch' }, { item: 'rope' }, { item: 'wooden_arrow' }, { item: 'lesser_mending' }, { item: 'bucket' }, { item: 'seedling' },
+      { item: 'delvers_almanac' }, { item: 'torch' }, { item: 'rope' }, { item: 'wooden_arrow' }, { item: 'lesser_mending' }, { item: 'bucket' }, { item: 'seedling' },
       { item: 'chest' }, { item: 'bed' }, { item: 'depth_gauge' }, { item: 'pocket_sundial' }, { item: 'grubbling_lure' },
       { item: 'lead_pellet', requires: 'boss:gravelmaw' }, { item: 'recall_draught', requires: 'boss:gravelmaw' },
     ],

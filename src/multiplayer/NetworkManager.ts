@@ -21,6 +21,8 @@ export class NetworkManager {
   private remotes = new Map<number, RemotePlayer>();
   private pending: number[] = [];
   private applyingRemote = false;
+  /** Set while running deterministic world changes every client performs itself (the Unsealing). */
+  suppressCapture = false;
   private stateTimer = 0;
   private chatEl: HTMLInputElement | null = null;
   private unsub: (() => void)[] = [];
@@ -85,7 +87,7 @@ export class NetworkManager {
     for (const p of players) if (p.id !== this.id) this.addRemote(p);
     this.unsub.push(
       s.world.onChange((x, y, layer) => {
-        if (this.applyingRemote || layer === 'liquid') return;
+        if (this.applyingRemote || this.suppressCapture || layer === 'liquid') return;
         this.pending.push(x, y, s.world.getFg(x, y), s.world.getFrame(x, y), s.world.getWall(x, y));
       }),
     );

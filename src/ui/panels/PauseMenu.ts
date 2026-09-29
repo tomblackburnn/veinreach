@@ -39,6 +39,7 @@ export class PauseMenu {
         h('h2', {}, this.s.online ? 'Menu (online — game continues)' : 'Paused'),
         h('button', { class: 'btn', onclick: () => this.close() }, 'Resume'),
         h('button', { class: 'btn', onclick: async () => { await this.s.save('manual'); } }, 'Save Game'),
+        h('button', { class: 'btn', onclick: () => { this.close(); this.s.guide.open(); } }, 'Delver\u2019s Almanac (G)'),
         h('button', { class: 'btn', onclick: () => this.showSettings() }, 'Settings'),
         h('button', { class: 'btn', onclick: () => this.showControls() }, 'Controls'),
         h('button', { class: 'btn danger', onclick: () => { this.close(); void this.s.exit(); } }, 'Save & Quit to Menu'),

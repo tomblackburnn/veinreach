@@ -55,7 +55,7 @@ export class SimContext implements GameContext {
   readonly lighting = new LightingSystem();
   readonly spawns = new SpawnSystem();
   readonly messages: string[] = [];
-  readonly ui: UIHooks = { openChest: noop, openNPC: noop, closeWorldPanels: noop, bossIntro: noop, banner: (t) => void this.messages.push(t) };
+  readonly ui: UIHooks = { openChest: noop, openNPC: noop, closeWorldPanels: noop, bossIntro: noop, banner: (t) => void this.messages.push(t), openGuide: noop };
   tick = 0;
   readonly online = false;
   god = false;
