@@ -27,6 +27,8 @@ export class Chunk {
   exploredDirty = false;
   /** Render cache must be rebuilt. */
   renderDirty = true;
+  /** Changed since the last save (autosave writes only these). */
+  saveDirty = false;
 
   constructor(
     readonly cx: number,

@@ -172,6 +172,7 @@ export class World {
     c.liquidType[i] = t;
     if (!this.generating) {
       c.modified = true;
+      c.saveDirty = true;
       c.renderDirty = true;
       for (const l of this.listeners) l(x, y, 'liquid');
     }
@@ -198,6 +199,7 @@ export class World {
     if (ly === MASK) this.markRenderDirty(x, y + 1);
     if (this.generating) return;
     c.modified = true;
+    c.saveDirty = true;
     for (const l of this.listeners) l(x, y, layer);
   }
 
