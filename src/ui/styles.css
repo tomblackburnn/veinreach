@@ -183,14 +183,18 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .console input { width: 100%; margin-top: 6px; }
 
 /* ---------- Panels (inventory etc.) ---------- */
-.inv-wrap { position: absolute; top: 70px; left: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; pointer-events: auto; max-width: calc(100vw / var(--ui-scale) - 20px); max-height: calc(100vh / var(--ui-scale) - 80px); overflow-y: auto; }
+/* No scrolling on the wrapper: a scrollbar appearing would steal width and make the columns jump. */
+.inv-wrap { position: absolute; top: 70px; left: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; pointer-events: auto; max-width: calc(100vw / var(--ui-scale) - 20px); }
 .inv-wrap * { pointer-events: auto; }
 .grid { display: grid; grid-template-columns: repeat(10, 46px); gap: 4px; }
 .equip-grid { display: grid; grid-template-columns: repeat(2, 46px); gap: 4px; }
 .subgrid { display: grid; gap: 4px; }
-.craft-list { display: grid; grid-template-columns: repeat(6, 46px); gap: 4px; max-height: 250px; overflow-y: auto; padding-right: 4px; }
+/* Fixed height (fits the screen) so filling in recipes never shifts the layout. */
+.craft-list { display: grid; grid-template-columns: repeat(6, 46px); grid-auto-rows: 46px; align-content: start; gap: 4px; height: clamp(96px, calc(100vh / var(--ui-scale) - 630px), 250px); overflow-y: scroll; overflow-x: hidden; padding-right: 2px; }
+.craft-list::-webkit-scrollbar { width: 8px; }
+.craft-list::-webkit-scrollbar-thumb { background: var(--panel-3); border: 2px solid var(--edge); }
 .craft-list .slot.no img { opacity: 0.35; filter: grayscale(0.8); }
-.craft-detail { min-height: 90px; margin-top: 8px; font-size: 18px; }
+.craft-detail { height: 124px; overflow-y: auto; margin-top: 8px; font-size: 18px; }
 .ing { display: flex; align-items: center; gap: 4px; }
 .ing img { width: 22px; height: 22px; image-rendering: pixelated; }
 .ing.missing { color: var(--bad); }
