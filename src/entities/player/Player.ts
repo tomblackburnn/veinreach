@@ -170,7 +170,13 @@ export class Player extends Actor {
   private move(ctx: GameContext): void {
     const inp = this.input;
     const st = this.stats;
+    const prevLiquid = this.liquid;
     this.liquid = liquidAt(ctx.world, this);
+    if (this.liquid !== prevLiquid && Math.abs(this.vy) > 1.5) {
+      const col = (this.liquid || prevLiquid) === 2 ? '#ff8a3a' : '#8fc4ff';
+      ctx.particles.splash(this.cx, this.bottom - 4, col);
+      ctx.audio.play('splash', { x: this.cx, y: this.cy, volume: 0.7 });
+    }
     const inWater = this.liquid !== 0;
     const slow = this.buffs.speedMul() * (inWater ? 0.55 : 1);
     const maxSpeed = PT.maxSpeed * (1 + st.moveSpeed) * slow;

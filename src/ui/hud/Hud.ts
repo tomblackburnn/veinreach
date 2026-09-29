@@ -7,6 +7,7 @@ import { iconUrlFromSpec, itemIconUrl } from '../../rendering/sprites/itemIcons'
 import { Tooltip, formatAurels } from '../Tooltip';
 import { BIOMES } from '../../data/biomes';
 import { escapeHtml } from '../../utils/dom';
+import { TileRegistry } from '../../world/TileRegistry';
 
 interface Msg {
   el: HTMLElement;
@@ -35,6 +36,7 @@ export class Hud {
   private deathEl: HTMLDivElement | null = null;
   private debugEl: HTMLDivElement;
   private mapEl: HTMLDivElement;
+  private hoverEl: HTMLDivElement;
   readonly barsEl: HTMLDivElement;
   private msgs: Msg[] = [];
   private last: Record<string, string | number> = {};
@@ -70,6 +72,7 @@ export class Hud {
     this.msgEl = h('div', { class: 'messages' });
     this.debugEl = h('div', { class: 'debug' });
     this.debugEl.style.display = 'none';
+    this.hoverEl = h('div', { class: 'crosshair-info' });
     this.mapEl = h('div', { class: 'fullmap' });
     this.mapEl.style.display = 'none';
     this.mapEl.addEventListener('click', () => this.toggleMap(false));
@@ -84,6 +87,7 @@ export class Hud {
       this.bossEl,
       this.msgEl,
       this.debugEl,
+      this.hoverEl,
       this.mapEl,
     );
     s.host.ui.root.appendChild(this.el);
@@ -137,6 +141,45 @@ export class Hud {
       if (t) t.textContent = `Respawning in ${Math.ceil(p.respawnTimer / 60)}...`;
     }
     if (this.mapOpen && this.s.tick % 10 === 0) this.s.minimap.renderFull(this.mapEl);
+    if (this.s.tick % 4 === 0) this.updateHover();
+  }
+
+  /** Contextual hint next to the cursor: interactables, creatures, NPCs. */
+  private updateHover(): void {
+    const s = this.s;
+    const inp = s.input;
+    let text = '';
+    if (inp.overCanvas && !s.inventory.isOpen && !s.player.dead) {
+      const [wx, wy] = s.camera.screenToWorld(inp.mouseX, inp.mouseY);
+      const inside = (e: { x: number; y: number; w: number; h: number }) => wx >= e.x - 2 && wx <= e.x + e.w + 2 && wy >= e.y - 2 && wy <= e.y + e.h + 2;
+      const npc = s.entities.npcs.find(inside);
+      const enemy = npc ? undefined : s.entities.enemies.find((e) => inside(e) && e.hittable && e.state !== 'disguised' && e.state !== 'buried');
+      if (npc) text = `${npc.displayName} — right-click to talk`;
+      else if (enemy) {
+        const tgt = enemy.head ?? enemy;
+        text = `${tgt.name}: ${Math.ceil(tgt.life)}/${tgt.maxLife}`;
+      } else {
+        const id = s.world.getFg(Math.floor(wx / 16), Math.floor(wy / 16));
+        const key = TileRegistry.get(id).key;
+        const hints: Record<string, string> = {
+          chest: 'Chest — right-click to open',
+          door_closed: 'Door — right-click to open',
+          door_open: 'Door — right-click to close',
+          bed: 'Bed — right-click to set spawn',
+          vital_crystal: 'Vital Crystal — break it to claim its heart',
+          pot: 'Clay Urn — break it',
+        };
+        text = hints[key] ?? '';
+      }
+      if (text) {
+        this.hoverEl.style.left = `${inp.mouseX + 18}px`;
+        this.hoverEl.style.top = `${inp.mouseY + 14}px`;
+      }
+    }
+    this.set('hover', text, () => {
+      this.hoverEl.textContent = text;
+      this.hoverEl.style.display = text ? '' : 'none';
+    });
   }
 
   private updateBuffs(): void {

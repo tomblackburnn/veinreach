@@ -304,13 +304,15 @@ export class ItemUse {
   }
 
   /** Arm/held pose for the renderer, in the player's local (facing-right) space. */
-  pose(p: Player): { armAngle: number | null; held: { id: string; style: 'swing' | 'hold' | 'aim' | 'thrust'; angle: number } | null } {
+  pose(p: Player): { armAngle: number | null; held: { id: string; style: 'swing' | 'hold' | 'aim' | 'thrust'; angle: number; scale?: number } | null } {
     if (!this.active || !this.item) return { armAngle: null, held: null };
     const local = p.facing > 0 ? this.angle : Math.PI - this.angle;
     const id = this.item.id;
     switch (this.style) {
       case 'swing':
-        return { armAngle: local - Math.PI / 2, held: this.item.placeTile || this.item.placeWall ? null : { id, style: 'swing', angle: local } };
+        // Scale the sprite so the drawn blade matches the weapon's hit reach.
+        const scale = Math.max(1.2, ((this.item.weapon?.reach ?? 30) * 1.35) / 24);
+        return { armAngle: local - Math.PI / 2, held: this.item.placeTile || this.item.placeWall ? null : { id, style: 'swing', angle: local, scale } };
       case 'aim': {
         const diagonal = ['wand', 'staff', 'sword', 'broadsword', 'boomerang'].includes(this.item.icon.t);
         return { armAngle: local - Math.PI / 2, held: this.item.icon.t === 'tome' ? { id, style: 'hold', angle: 0 } : { id, style: 'aim', angle: local + (diagonal ? Math.PI / 4 : 0) } };

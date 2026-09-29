@@ -14,7 +14,7 @@ export interface PlayerPose {
   facing: 1 | -1;
   /** Front-arm angle in radians (0 = pointing forward) or null for the default pose. */
   armAngle: number | null;
-  held?: { id: string; style: 'swing' | 'hold' | 'aim' | 'thrust'; angle: number } | null;
+  held?: { id: string; style: 'swing' | 'hold' | 'aim' | 'thrust'; angle: number; scale?: number } | null;
   flash?: boolean;
   alpha?: number;
 }
@@ -161,7 +161,7 @@ function drawHeld(g: CanvasRenderingContext2D, p: PlayerPose, bob: number): void
   if (h.style === 'swing') {
     // Icon drawn with grip at bottom-left; rotate so blade points along the angle.
     g.rotate(h.angle + Math.PI / 4);
-    g.scale(1.25, 1.25);
+    g.scale(h.scale ?? 1.25, h.scale ?? 1.25);
     g.drawImage(icon, -2, -icon.height * scale + 2, icon.width * scale, icon.height * scale);
   } else if (h.style === 'aim' || h.style === 'thrust') {
     g.rotate(h.angle);
