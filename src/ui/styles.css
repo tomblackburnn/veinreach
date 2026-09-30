@@ -320,3 +320,6 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 :where(button, a, input, select, summary, [tabindex]):focus-visible { outline: 3px solid var(--gold-2); outline-offset: 2px; }
 .footer a, .credits a { color: var(--gold-2); }
 .legal-links { display: inline-flex; gap: 6px; }
+.agree { align-items: flex-start; gap: 8px; cursor: pointer; }
+.agree input { width: 20px; height: 20px; margin-top: 2px; flex: none; }
+.account-panel a { color: var(--gold-2); }

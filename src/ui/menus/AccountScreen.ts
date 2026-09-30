@@ -17,6 +17,13 @@ export function accountScreen(host: MenuHost, c: CharacterSave, st: AccountState
     el.addEventListener('blur', () => (host.input.typing = false));
     return el;
   };
+  const link = (label: string, href: string) => h('a', { href, target: '_blank', rel: 'noopener' }, label);
+  /** Re-enable the buttons after an action, except Google sign-in until the agreement box is ticked. */
+  const enableButtons = (panel: Element | null) => {
+    panel?.querySelectorAll('button').forEach((b) => (b.disabled = false));
+    const agree = panel?.querySelector<HTMLInputElement>('#agree-terms');
+    if (agree) panel?.querySelectorAll<HTMLButtonElement>('.google-btn').forEach((b) => (b.disabled = !agree.checked));
+  };
   const msg = h('div', { class: 'hint account-msg' });
   const say = (text: string, ok = false) => {
     msg.textContent = text;
@@ -30,10 +37,10 @@ export function accountScreen(host: MenuHost, c: CharacterSave, st: AccountState
     try {
       await fn();
       if (after === 'reload') host.showMultiplayer(c);
-      else panel?.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      else enableButtons(panel);
     } catch (err) {
       say((err as Error).message);
-      panel?.querySelectorAll('button').forEach((b) => (b.disabled = false));
+      enableButtons(panel);
     }
   };
   const back = h('button', { class: 'btn', onclick: () => host.showCharacters('multiplayer') }, 'Back');
@@ -42,9 +49,13 @@ export function accountScreen(host: MenuHost, c: CharacterSave, st: AccountState
     h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel account-panel' }, h('h2', {}, title), ...body, msg));
 
   if (!st.signedIn) {
+    const agree = h('input', { type: 'checkbox', id: 'agree-terms' });
+    const google = h('button', { class: 'btn gold google-btn', disabled: true, onclick: run(() => account.signInWithGoogle()) }, 'Continue with Google');
+    agree.addEventListener('change', () => (google.disabled = !agree.checked));
     return panel('Sign in to play online',
       h('div', { class: 'dialog-text' }, 'Online worlds need an account, so world owners can see who is playing and remove or ban people. Single-player never needs one.'),
-      h('button', { class: 'btn gold google-btn', onclick: run(() => account.signInWithGoogle()) }, 'Continue with Google'),
+      h('label', { class: 'row agree', for: 'agree-terms' }, agree, h('span', {}, 'I’m 13 or older and agree to the ', link('Terms', '/terms.html'), ' and ', link('Privacy Policy', '/privacy.html'), '.')),
+      google,
       h('div', { class: 'hint' }, 'We only use your Google account to know it’s you. Other players see the username you choose next, never your name or email.'),
       h('div', { class: 'row' }, back, h('div', { class: 'spacer' }), selfHosted),
     );
@@ -68,6 +79,7 @@ export function accountScreen(host: MenuHost, c: CharacterSave, st: AccountState
     h('div', { class: 'dialog-text' }, 'This is the name other players see in chat and above your character online. It must be unique and can’t be changed later.'),
     h('div', { class: 'row' }, name, h('button', { class: 'btn good', onclick: save }, 'Save')),
     h('div', { class: 'hint' }, '3–16 letters, numbers or underscores.'),
+    h('div', { class: 'hint' }, 'By playing online you agree to the ', link('Terms', '/terms.html'), '. See the ', link('Privacy Policy', '/privacy.html'), ' for what is stored.'),
     h('div', { class: 'row' }, back, h('div', { class: 'spacer' }), h('button', { class: 'btn small', onclick: run(() => account.signOut()) }, 'Sign out')),
   );
 }
