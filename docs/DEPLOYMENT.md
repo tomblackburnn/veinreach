@@ -29,7 +29,7 @@ Verification and password-reset emails link to the game's own page at `/auth/act
 
 This needs the template action URL set to `https://veinreach-game.web.app/auth/action` in the console (Authentication → Templates → pencil → *Customize action URL*). Firebase doesn't allow changing it through the API on this project.
 
-`firebase.json` runs `npm run build` before each hosting deploy. Hashed JS and CSS bundles are cached for a year; `index.html` is always revalidated, so players get new versions on reload.
+`firebase.json` runs `npm run build` before each hosting deploy. Hashed JS and CSS bundles are cached for a year. Everything else (pages, including deep links like `/auth/action`, and the audio manifest) is sent with `no-cache`, so players get new versions on their next reload. The build uses `base: '/'` so deep links load `/assets/...` correctly.
 
 ## Local testing with emulators
 

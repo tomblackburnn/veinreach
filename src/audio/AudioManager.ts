@@ -75,11 +75,11 @@ export class AudioManager {
   private async loadManifest(): Promise<void> {
     if (!this.ctx) return;
     try {
-      const res = await fetch('./assets/audio/manifest.json', { cache: 'no-cache' });
+      const res = await fetch(`${import.meta.env.BASE_URL}assets/audio/manifest.json`, { cache: 'no-cache' });
       if (!res.ok) return;
       const m = (await res.json()) as Manifest;
       const load = async (url: string) => {
-        const r = await fetch('./assets/audio/' + url);
+        const r = await fetch(`${import.meta.env.BASE_URL}assets/audio/${url}`);
         return this.ctx!.decodeAudioData(await r.arrayBuffer());
       };
       for (const [k, url] of Object.entries(m.sfx ?? {})) load(url).then((b) => this.samples.set(k, b)).catch((e) => console.warn('[Audio] sfx load failed', k, e));
