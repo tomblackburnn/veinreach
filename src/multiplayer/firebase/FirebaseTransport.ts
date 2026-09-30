@@ -310,6 +310,8 @@ export class FirebaseTransport implements Transport {
         if ((await get(child(this.base, 'settings/locked'))).val() === true) return 'This world is locked: its owner isn’t letting new players join right now.';
         await set(child(this.base, `members/${uid}`), { name: this.username, joined: serverTimestamp() });
       }
+      // Remembered in our own profile, so deleting the account can clean up here too.
+      this.write(set(ref(this.fb.db, `users/${uid}/joined/${this.code}`), true), true);
       // The same account can only be in a world once (another tab or device).
       for (let tries = 0; tries < 3; tries++) {
         if (!(await get(this.me)).exists()) return null;
@@ -563,6 +565,7 @@ export class FirebaseTransport implements Transport {
       /* the room may have been deleted */
     }
     const reason = banned ? 'You have been banned from this world by its owner.' : 'You were removed from this world (by its owner, or the world was deleted).';
+    void remove(ref(this.fb.db, `users/${this.fb.uid}/joined/${this.code}`)).catch(() => undefined);
     this.close();
     this.onClose?.(reason);
   }

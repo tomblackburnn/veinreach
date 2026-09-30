@@ -12,6 +12,7 @@ export interface OnlineMenu {
   maxOwned: number;
   signOut(): void;
   deleteAccount(): void;
+  leaveRoom(code: string): void;
   deleteWorld(w: { slot: string; code: string; name: string }): void;
 }
 
@@ -70,7 +71,9 @@ export function multiplayerScreen(host: MenuHost, c: CharacterSave, online: Onli
         h('b', { style: 'letter-spacing:2px;min-width:90px' }, r.code),
         h('span', {}, r.name),
         h('div', { class: 'spacer' }),
-        h('button', { class: 'btn small', title: 'Remove from this list (the world itself is not deleted)', onclick: () => { forgetRoom(r.code); renderRecent(); } }, 'Forget'),
+        online
+          ? h('button', { class: 'btn small', title: 'Leave this world: removes you and your chat from it. You can rejoin later unless it’s locked or you’re banned.', onclick: () => online.leaveRoom(r.code) }, 'Leave')
+          : h('button', { class: 'btn small', title: 'Remove from this list (the world itself is not deleted)', onclick: () => { forgetRoom(r.code); renderRecent(); } }, 'Forget'),
         h('button', { class: 'btn small good', onclick: () => host.joinRoom(c, r.code) }, 'Join'),
       ));
     }

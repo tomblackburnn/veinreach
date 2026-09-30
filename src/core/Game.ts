@@ -32,6 +32,7 @@ import { defaultWorldState } from '../world/WorldState';
 import { applyRemotePainting } from '../world/paintings';
 import { ItemRegistry } from '../items/ItemRegistry';
 import { RecipeRegistry } from '../crafting/RecipeRegistry';
+import { forgetRoom, clearRecentRooms } from '../multiplayer/recentRooms';
 
 /** Application root: owns the canvas, services, menus and the active session. */
 export class Game implements MenuHost {
@@ -171,11 +172,17 @@ export class Game implements MenuHost {
         maxOwned: acc.MAX_OWNED_ROOMS,
         signOut: act(() => acc.signOut()),
         deleteAccount: act(async () => {
-          if (!(await this.ui.confirm('Delete account', 'This permanently deletes your account, your username and every online world you own (for all their members). Your single-player characters and worlds are not affected.', true))) return;
+          if (!(await this.ui.confirm('Delete account', 'This permanently deletes your account, your username, every online world you own (for all their members), and your chat and membership in worlds you joined. Your single-player characters and worlds are not affected. Google will ask you to sign in once more to confirm.', true))) return;
           const owned = await acc.ownedRooms();
           await acc.deleteAccount();
           for (const w of owned) await this.unlinkCopy(w.code);
+          clearRecentRooms();
         }),
+        leaveRoom: (code) => void act(async () => {
+          if (!(await this.ui.confirm('Leave world', 'You’ll be removed from this world and your chat messages in it will be deleted. You can rejoin later unless it’s locked or you’re banned.'))) return;
+          await acc.leaveRoom(code);
+          forgetRoom(code);
+        })(),
         deleteWorld: (w) => void act(async () => {
           if (!(await this.ui.confirm('Delete online world', `Permanently delete “${w.name}” (${w.code}) for everyone? This can’t be undone.`, true))) return;
           await acc.deleteOwnedRoom(w);

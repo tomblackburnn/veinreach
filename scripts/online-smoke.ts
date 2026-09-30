@@ -18,6 +18,7 @@ import type { ServerMsg } from '../src/multiplayer/protocol';
 import { PROTOCOL_VERSION } from '../src/multiplayer/protocol';
 import { randomRoomCode, encodeTile } from '../src/multiplayer/firebase/codec';
 import { TileRegistry } from '../src/world/TileRegistry';
+import { purgeAccountData } from '../src/multiplayer/firebase/accountData';
 
 const apps: ReturnType<typeof initializeApp>[] = [];
 const run = Date.now().toString(36);
@@ -223,6 +224,36 @@ async function main(): Promise<void> {
   await set(fresh, { uid: P.uid, name: nP, text: 'hi', t: serverTimestamp() });
   check('members cannot delete other players’ recent messages', await denied(remove(ref(Q.db, `rooms/${pc}/chat/${fresh.key}`))));
   check('players can delete their own messages', !(await denied(remove(fresh))));
+
+  console.log('— Privacy: joined worlds, leaving, and deleting an account');
+  check('joining records the world in your own profile', (await get(ref(Q.db, `users/${Q.uid}/joined/${pc}`))).val() === true);
+  check('nobody can write another player’s joined list', await denied(set(ref(Q.db, `users/${P.uid}/joined/${pc}`), true)));
+  check('players cannot lift their own ban', await denied(remove(ref(Q.db, `rooms/${pc}/bans/${Q.uid}`))));
+  const qMsg = push(ref(Q.db, `rooms/${pc}/chat`));
+  await set(qMsg, { uid: Q.uid, name: nQ, text: 'bye', t: serverTimestamp() });
+  qj.t.close();
+  await sleep(300);
+  await set(ref(Q.db, `users/${Q.uid}/joined/ZZZZZZ`), true); // a world that no longer exists
+  await purgeAccountData(Q.db, Q.uid);
+  check('deleting an account removes its chat in other worlds', !(await get(ref(P.db, `rooms/${pc}/chat/${qMsg.key}`))).exists());
+  check('…its membership and player entry', !(await get(ref(P.db, `rooms/${pc}/members/${Q.uid}`))).exists() && !(await get(ref(P.db, `rooms/${pc}/players/${Q.uid}`))).exists());
+  check('…and its profile and username', !(await get(ref(P.db, `usernames/${nQ.toLowerCase()}`))).exists());
+  // A banned player deleting their account: the ban stays with the world.
+  const R = await googleUser('r1');
+  const nR = `Rr_${run}`.slice(0, 16);
+  await claim(R, nR);
+  const rj = join(R, pc, nR);
+  await rj.welcome;
+  await set(ref(P.db, `rooms/${pc}/bans/${R.uid}`), { name: nR, at: serverTimestamp() });
+  await remove(ref(P.db, `rooms/${pc}/members/${R.uid}`));
+  await sleep(1000);
+  rj.t.close();
+  await purgeAccountData(R.db, R.uid);
+  check('a banned player can still delete their account', !(await get(ref(P.db, `usernames/${nR.toLowerCase()}`))).exists());
+  check('…and the ban stays with the world', (await get(ref(P.db, `rooms/${pc}/bans/${R.uid}`))).exists());
+  // Deleting an owner deletes their worlds.
+  await purgeAccountData(P.db, P.uid);
+  check('deleting an owner deletes their worlds', (await denied(get(ref(P.db, `rooms/${pc}/meta`)))) || !(await get(ref(P.db, `rooms/${pc}/meta`))).exists());
 
   await Promise.all(apps.map((x) => deleteApp(x)));
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll online checks passed');

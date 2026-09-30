@@ -1,9 +1,10 @@
 import {
   GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendEmailVerification,
-  sendPasswordResetEmail, signOut as fbSignOut, deleteUser, type User,
+  sendPasswordResetEmail, signOut as fbSignOut, deleteUser, reauthenticateWithPopup, type User,
 } from 'firebase/auth';
 import { ref, get, update } from 'firebase/database';
 import { getFirebaseCore, friendlyError } from './client';
+import { leaveRoomData, purgeAccountData } from './accountData';
 
 export const USERNAME_RE = /^[A-Za-z0-9_]{3,16}$/;
 
@@ -157,17 +158,25 @@ export function deleteOwnedRoom(room: OwnedRoom): Promise<void> {
   });
 }
 
-/** Delete the account: its worlds, username and profile, then the login itself. */
+/** Delete the account: everything it left in online worlds, its worlds, username and profile, then the login itself. */
 export function deleteAccount(): Promise<void> {
   return wrap(async () => {
     const c = await getFirebaseCore();
     const u = c.auth.currentUser;
     if (!u) return;
-    for (const r of await ownedRooms()) await deleteOwnedRoom(r);
-    const name = (await get(ref(c.db, `users/${u.uid}/name`))).val() as string | null;
-    const paths: Record<string, null> = { [`users/${u.uid}`]: null };
-    if (name) paths[`usernames/${name.toLowerCase()}`] = null;
-    await update(ref(c.db), paths);
+    // Google wants a fresh sign-in before deleting a login; ask first so nothing is half-deleted.
+    if (u.providerData.some((p) => p.providerId === 'google.com')) await reauthenticateWithPopup(u, new GoogleAuthProvider());
+    await purgeAccountData(c.db, u.uid);
     await deleteUser(u);
+  });
+}
+
+/** Leave a world you joined: removes your membership and your chat there. */
+export function leaveRoom(code: string): Promise<void> {
+  return wrap(async () => {
+    const c = await getFirebaseCore();
+    const u = c.auth.currentUser;
+    if (!u) throw new Error('Please sign in first.');
+    await leaveRoomData(c.db, u.uid, code);
   });
 }

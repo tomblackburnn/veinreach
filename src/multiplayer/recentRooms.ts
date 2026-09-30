@@ -26,6 +26,14 @@ export function rememberRoom(code: string, name: string): void {
   }
 }
 
+export function clearRecentRooms(): void {
+  try {
+    localStorage.removeItem(RECENT_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export function forgetRoom(code: string): void {
   try {
     localStorage.setItem(RECENT_KEY, JSON.stringify(recentRooms().filter((r) => r.code !== code)));

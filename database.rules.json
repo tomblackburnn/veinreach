@@ -21,6 +21,12 @@
             ".validate": "$slot.matches(/^[1-5]$/) && newData.isString() && newData.parent().parent().parent().parent().child('rooms').child(newData.val()).child('meta').child('owner').val() === auth.uid"
           }
         },
+        "joined": {
+          "$code": {
+            ".write": "auth != null && auth.token.email_verified === true && auth.uid === $uid",
+            ".validate": "$code.matches(/^[A-Z2-9]{6}$/) && newData.val() === true"
+          }
+        },
         "$other": {
           ".validate": false
         }
