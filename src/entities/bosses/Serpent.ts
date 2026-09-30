@@ -112,6 +112,19 @@ export class Serpent extends Boss {
     return super.hurtFromSegment(ctx, { ...h, damage: h.damage * 0.85 }, seg);
   }
 
+  protected override netExtra(): Record<string, number | boolean> {
+    return { hd: Math.round(this.heading * 1000) / 1000 };
+  }
+
+  protected override applyNetExtra(ex: Record<string, number | boolean>): void {
+    if (typeof ex.hd === 'number') this.heading = ex.hd;
+  }
+
+  /** Mirrors grow their own body, which follows the mirrored head. */
+  protected override onPuppetTick(ctx: GameContext): void {
+    if (!this.segments.length) this.spawnSegments(ctx);
+  }
+
   private steer(tx: number, ty: number, turn: number): void {
     const want = Math.atan2(ty - this.cy, tx - this.cx);
     this.heading = angleLerp(this.heading, want, turn);
@@ -123,7 +136,7 @@ export class Serpent extends Boss {
 
   protected think(ctx: GameContext): void {
     if (!this.segments.length) this.spawnSegments(ctx);
-    const pl = ctx.player;
+    const pl = this.target;
     const t = this.attackT;
     const p2 = this.phase >= 2;
     const base = p2 ? 9.5 : 7.5;

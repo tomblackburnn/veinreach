@@ -45,7 +45,7 @@ export class Thornwarden extends Boss {
   }
 
   protected think(ctx: GameContext): void {
-    const pl = ctx.player;
+    const pl = this.target;
     const t = this.attackT;
     const p2 = this.phase >= 2;
     this.facing = pl.cx > this.cx ? 1 : -1;

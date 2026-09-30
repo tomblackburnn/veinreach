@@ -30,23 +30,23 @@ export function walk(e: Enemy, ctx: GameContext, dir: number, speed: number, jum
 }
 
 export function distToPlayer(e: Enemy, ctx: GameContext): number {
-  return Math.hypot(ctx.player.cx - e.cx, ctx.player.cy - e.cy);
+  return Math.hypot(e.target.cx - e.cx, e.target.cy - e.cy);
 }
 
 export function dirToPlayer(e: Enemy, ctx: GameContext): number {
-  return Math.sign(ctx.player.cx - e.cx) || 1;
+  return Math.sign(e.target.cx - e.cx) || 1;
 }
 
 export function canSeePlayer(e: Enemy, ctx: GameContext, range: number): boolean {
-  if (ctx.player.dead) return false;
+  if (e.target.dead) return false;
   if (distToPlayer(e, ctx) > range) return false;
-  return lineOfSight(ctx.world, e.cx, e.cy, ctx.player.cx, ctx.player.cy);
+  return lineOfSight(ctx.world, e.cx, e.cy, e.target.cx, e.target.cy);
 }
 
 /** Aim a projectile at the player with optional lead. */
 export function shootAt(e: Enemy, ctx: GameContext, speed: number, spread = 0, id = e.def.projectile, dmg = e.def.projectileDamage): void {
   if (!id) return;
-  const pl = ctx.player;
+  const pl = e.target;
   const a = Math.atan2(pl.cy - e.cy, pl.cx - e.cx) + spread;
   ctx.spawnProjectile(id, e.cx, e.cy, Math.cos(a) * speed, Math.sin(a) * speed, { damage: dmg ?? e.damage, knockback: 4, friendly: false, owner: e, onHit: e.def.onHit });
 }

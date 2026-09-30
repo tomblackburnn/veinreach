@@ -9,7 +9,7 @@ const TILE = 16;
 /** Erratic bat-like flight toward the player, bouncing off terrain. */
 export const flierAI: AIController = {
   update(e, ctx) {
-    const pl = ctx.player;
+    const pl = e.target;
     const erratic = p(e, 'erratic', 1);
     const wob = Math.sin(e.age * 0.08 + e.id) * 60 * erratic;
     if (!pl.dead && distToPlayer(e, ctx) < 50 * TILE) flyToward(e, pl.cx + wob, pl.cy + Math.cos(e.age * 0.06 + e.id) * 40 * erratic, p(e, 'speed', 3), 0.05);
@@ -24,7 +24,7 @@ export const flierAI: AIController = {
 /** Circles above the player, winds up, then dives through their position. */
 export const hoverdiveAI: AIController = {
   update(e, ctx) {
-    const pl = ctx.player;
+    const pl = e.target;
     switch (e.state) {
       case 'dive':
         e.x += e.vx;
@@ -66,7 +66,7 @@ export const hoverdiveAI: AIController = {
 /** Hovers at range and fires fan bursts (crystal motes). */
 export const floaterAI: AIController = {
   update(e, ctx) {
-    const pl = ctx.player;
+    const pl = e.target;
     const side = e.id % 2 ? 1 : -1;
     const tx = pl.cx + side * 150 + Math.sin(e.age * 0.03) * 40;
     const ty = pl.cy - 90 + Math.cos(e.age * 0.05) * 20;
@@ -91,7 +91,7 @@ export const floaterAI: AIController = {
 export const ghostAI: AIController = {
   update(e, ctx) {
     e.noClip = true;
-    const pl = ctx.player;
+    const pl = e.target;
     if (e.state === 'lunge') {
       e.x += e.vx;
       e.y += e.vy;
@@ -118,7 +118,7 @@ export const ghostAI: AIController = {
 export const casterAI: AIController = {
   update(e, ctx) {
     const flying = p(e, 'fly', 0) === 1;
-    const pl = ctx.player;
+    const pl = e.target;
     if (flying) {
       flyToward(e, pl.cx + Math.sin(e.age * 0.02 + e.id) * 160, pl.cy - 80, 1.4, 0.04);
       physics(e, ctx, false);
@@ -154,7 +154,7 @@ export const casterAI: AIController = {
 
 /** Find an open spot near the player and blink there. */
 export function teleportNear(e: Enemy, ctx: GameContext, air: boolean): boolean {
-  const pl = ctx.player;
+  const pl = e.target;
   for (let i = 0; i < 30; i++) {
     const tx = Math.floor(pl.cx / TILE) + (Math.random() < 0.5 ? -1 : 1) * (8 + Math.floor(Math.random() * 12));
     let ty = Math.floor(pl.cy / TILE) + Math.floor(Math.random() * 16) - 8;

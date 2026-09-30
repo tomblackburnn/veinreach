@@ -26,6 +26,7 @@ import type { NPCManager } from '../entities/npcs/NPCManager';
 import type { ChestData } from '../world/WorldState';
 import type { NPC } from '../entities/npcs/NPC';
 import type { LightingSystem } from '../lighting/LightingSystem';
+import type { MobSync } from '../multiplayer/MobSync';
 
 export interface GameEvents {
   message: { text: string; color?: string };
@@ -78,6 +79,8 @@ export interface GameContext {
   readonly lighting: LightingSystem;
   readonly ui: UIHooks;
   readonly tick: number;
+  /** Shared creatures in multiplayer (null in single-player). */
+  readonly mp?: MobSync | null;
   /** True when this client is connected to a multiplayer server. */
   readonly online: boolean;
   message(text: string, color?: string): void;

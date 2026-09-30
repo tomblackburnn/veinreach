@@ -30,6 +30,7 @@ import type { AudioManager } from '../../src/audio/AudioManager';
 import type { InputManager } from '../../src/engine/InputManager';
 import { SpawnSystem } from '../../src/systems/SpawnSystem';
 import { emptyInput } from '../../src/entities/player/Player';
+import type { MobSync } from '../../src/multiplayer/MobSync';
 
 const noop = () => undefined;
 const audioStub = { play: noop, setMusic: noop, setAmbience: noop, setListener: noop, unlock: noop, setVolumes: noop } as unknown as AudioManager;
@@ -59,6 +60,8 @@ export class SimContext implements GameContext {
   tick = 0;
   readonly online = false;
   god = false;
+  /** Shared creatures when a test wires two games together. */
+  mp: MobSync | null = null;
 
   constructor(readonly world: World) {
     this.mining = new MiningSystem(world.width);
@@ -87,6 +90,7 @@ export class SimContext implements GameContext {
     if (!def) throw new Error(`unknown projectile ${id}`);
     const p = new Projectile(def, x, y, vx, vy, o);
     this.entities.add(p);
+    this.mp?.projectileSpawned(p);
     return p;
   }
   spawnEnemy(id: string, x: number, y: number): Enemy | null {
@@ -108,6 +112,7 @@ export class SimContext implements GameContext {
       this.mining.update();
       this.particles.update();
       this.text.update();
+      this.mp?.tick();
       this.camera.follow(this.player.cx, this.player.cy);
       if (this.god) {
         this.player.life = this.player.maxLife;

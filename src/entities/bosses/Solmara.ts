@@ -50,7 +50,7 @@ export class Solmara extends Boss {
   }
 
   protected think(ctx: GameContext): void {
-    const pl = ctx.player;
+    const pl = this.target;
     const t = this.attackT;
     this.facing = pl.cx > this.cx ? 1 : -1;
     switch (this.attack) {
@@ -192,8 +192,8 @@ export class Solmara extends Boss {
     this.hazards = this.arena ? [this.arena] : [];
     this.defense = this.bdef.defense;
     if (phase === 2) {
-      this.ax = ctx.player.cx;
-      this.ay = ctx.player.cy;
+      this.ax = this.target.cx;
+      this.ay = this.target.cy;
       this.arena = { kind: 'ring', x: this.ax, y: this.ay, r: 620, warn: 90, active: 0, age: 0, damage: Math.round(this.damage * 0.5), color: '#ff8ae6', permanent: true };
       this.hazards.push(this.arena);
       ctx.ui.banner('Solmara’s light fractures!', 'The heavens close in around you.', '#ff8ae6');

@@ -47,7 +47,7 @@ export class WormHeadAI implements AIController {
     e.noClip = true;
     e.noGravity = true;
     if (!this.segments.length) this.spawnSegments(e, ctx);
-    const pl = ctx.player;
+    const pl = e.target;
     const inside = rectHitsSolid(ctx.world, e.x + 2, e.y + 2, e.w - 4, e.h - 4) || ctx.world.getWall(Math.floor(e.cx / 16), Math.floor(e.cy / 16)) !== 0 && e.def.id !== 'tunnelgrub';
     const speed = p(e, 'speed', 4.5) * e.buffs.speedMul();
     const turn = p(e, 'turn', 0.07);
@@ -74,6 +74,13 @@ export class WormHeadAI implements AIController {
     // Keep inside the world.
     e.x = Math.max(0, Math.min(ctx.world.width * 16 - e.w, e.x));
     e.y = Math.max(0, Math.min(ctx.world.height * 16 - e.h, e.y));
+  }
+
+  /** Mirror of another player's worm: face along the motion and grow a local body that follows. */
+  puppetUpdate(e: Enemy, ctx: GameContext): void {
+    e.mem.rot = Math.atan2(e.vy, e.vx);
+    e.mem.seg = 0;
+    if (!this.segments.length) this.spawnSegments(e, ctx);
   }
 
   private spawnSegments(e: Enemy, ctx: GameContext): void {

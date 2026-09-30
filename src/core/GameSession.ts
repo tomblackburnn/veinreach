@@ -132,6 +132,10 @@ export class GameSession implements GameContext {
   get settings() {
     return this.host.settings;
   }
+  /** Shared creatures (multiplayer only). */
+  get mp() {
+    return this.net?.mobs ?? null;
+  }
   get online(): boolean {
     return !!this.net?.connected;
   }
@@ -249,6 +253,7 @@ export class GameSession implements GameContext {
     }
     const p = new Projectile(def, x, y, vx, vy, o);
     this.entities.add(p);
+    this.mp?.projectileSpawned(p);
     return p;
   }
 

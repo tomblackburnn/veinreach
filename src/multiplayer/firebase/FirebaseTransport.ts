@@ -1,11 +1,11 @@
 import {
-  ref, child, get, set, update, push, remove, onChildAdded, onChildChanged, onChildRemoved, onValue, onDisconnect, query, limitToLast, serverTimestamp,
+  ref, child, get, set, update, push, remove, onChildAdded, onChildChanged, onChildRemoved, onValue, onDisconnect, query, limitToLast, orderByChild, endAt, serverTimestamp,
   type DatabaseReference, type DataSnapshot, type Unsubscribe,
 } from 'firebase/database';
 import type { FirebaseHandle } from './client';
 import { friendlyError } from './client';
 import type { Transport } from '../transport';
-import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg, type PlayerInfo, type PlayerState } from '../protocol';
+import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg, type PlayerInfo, type PlayerState, type MobSnap, type MobEvent } from '../protocol';
 import { WORLD_SIZES, DAY_TICKS, type WorldSizeKey } from '../../core/config';
 import { TileRegistry } from '../../world/TileRegistry';
 import { sanitizeAppearance } from '../../entities/player/Appearance';
@@ -76,6 +76,7 @@ export class FirebaseTransport implements Transport {
   private wasConnected = true;
 
   private owner = '';
+  private mobRef: DatabaseReference | null = null;
   private locked = false;
   private members = new Map<string, string>();
   private online = new Set<string>();
@@ -132,6 +133,23 @@ export class FirebaseTransport implements Transport {
       case 'flag':
         if (/^[A-Za-z0-9:_-]{1,40}$/.test(m.flag)) this.write(set(child(this.base, `flags/${m.flag}`), true), true);
         break;
+      case 'mobs': {
+        // Our creatures' latest snapshot (overwritten ~10×/s, removed if we disconnect).
+        const r = child(this.base, `mobs/${m.tag}`);
+        if (!this.mobRef) {
+          this.mobRef = r;
+          void onDisconnect(r).remove();
+        }
+        this.write(m.list.length ? set(r, JSON.stringify(m.list)) : remove(r));
+        break;
+      }
+      case 'ev': {
+        // Hits, deaths and projectiles: short-lived events, cleaned up by their sender.
+        const r = push(child(this.base, 'ev'));
+        this.write(set(r, { f: m.tag, t: serverTimestamp(), e: JSON.stringify(m.ev) }));
+        setTimeout(() => void remove(r).catch(() => undefined), 15000);
+        break;
+      }
       case 'chat': {
         const text = String(m.text ?? '').slice(0, 200).trim();
         if (text) this.write(push(child(this.base, 'chat'), { uid: this.fb.uid, name: this.name, text, t: serverTimestamp() }));
@@ -160,6 +178,7 @@ export class FirebaseTransport implements Transport {
     this.unsubs = [];
     void remove(this.me).catch(() => undefined);
     void onDisconnect(this.me).cancel().catch(() => undefined);
+    if (this.mobRef) void remove(this.mobRef).catch(() => undefined);
   }
 
   // ---------------------------------------------------------------------------
@@ -199,7 +218,8 @@ export class FirebaseTransport implements Transport {
       return;
     }
     const meta = metaSnap.val() as RoomMeta;
-    if (meta.v !== PROTOCOL_VERSION) {
+    // Room data hasn't changed format since v2, so older rooms stay playable.
+    if (meta.v < 2 || meta.v > PROTOCOL_VERSION) {
       this.emit({ t: 'reject', reason: `That world was made with a different game version (${meta.v}, you have ${PROTOCOL_VERSION}). Refresh the page to update.` });
       return;
     }
@@ -230,6 +250,8 @@ export class FirebaseTransport implements Transport {
       this.watch('flags', (k, _v, initial) => (initial ? flags.push(k) : this.emit({ t: 'flag', flag: k }))),
       this.watch('players', (k, v, initial) => this.onPlayer(k, v, initial ? players : null), (k) => this.onPlayerLeft(k)),
       this.watch('members', (k, v) => this.onMember(k, v), (k) => this.onMemberRemoved(k)),
+      this.watch('mobs', (k, v, initial) => !initial && this.onMobs(k, v), (k) => this.emit({ t: 'mobs', tag: k, list: [] })),
+      this.watchEvents(),
       this.watchChat(),
       ...(this.owner === this.fb.uid ? [this.watch('bans', (k, v) => this.onBan(k, v), (k) => this.onUnban(k))] : []),
     ]);
@@ -336,6 +358,51 @@ export class FirebaseTransport implements Transport {
             resolve();
           },
           reject,
+          { onlyOnce: true },
+        ),
+      );
+    });
+  }
+
+  private onMobs(tag: string, v: unknown): void {
+    if (typeof v !== 'string' || v.length > 200000) return;
+    try {
+      const list = JSON.parse(v) as MobSnap[];
+      if (Array.isArray(list)) this.emit({ t: 'mobs', tag, list });
+    } catch {
+      /* ignore malformed snapshots */
+    }
+  }
+
+  /** Only events sent after we joined; old leftovers (crashed senders) are cleared. */
+  private watchEvents(): Promise<void> {
+    const evRef = child(this.base, 'ev');
+    void get(query(evRef, orderByChild('t'), endAt(Date.now() - 60000)))
+      .then((old) => old.forEach((c) => void remove(c.ref).catch(() => undefined)))
+      .catch(() => undefined);
+    return new Promise((resolve) => {
+      let ready = false;
+      const q = query(evRef, limitToLast(1));
+      this.unsubs.push(
+        onChildAdded(q, (snap) => {
+          if (!ready) return;
+          const v = snap.val() as { f?: unknown; e?: unknown } | null;
+          if (!v || typeof v.f !== 'string' || typeof v.e !== 'string' || v.e.length > 50000) return;
+          try {
+            const ev = JSON.parse(v.e) as MobEvent[];
+            if (Array.isArray(ev)) this.emit({ t: 'ev', tag: v.f, ev });
+          } catch {
+            /* ignore malformed events */
+          }
+        }),
+      );
+      this.unsubs.push(
+        onValue(
+          q,
+          () => {
+            ready = true;
+            resolve();
+          },
           { onlyOnce: true },
         ),
       );
@@ -530,7 +597,7 @@ export class FirebaseTransport implements Transport {
   private sendState(m: PlayerState): void {
     // ~7.5 updates a second, and nothing at all while standing still.
     if (++this.stateTick % 2) return;
-    const json = JSON.stringify({ x: Math.round(m.x), y: Math.round(m.y), vx: +m.vx.toFixed(2), vy: +m.vy.toFixed(2), facing: m.facing, anim: m.anim, held: m.held, armor: m.armor, life: m.life, maxLife: m.maxLife });
+    const json = JSON.stringify({ x: Math.round(m.x), y: Math.round(m.y), vx: +m.vx.toFixed(2), vy: +m.vy.toFixed(2), facing: m.facing, anim: m.anim, held: m.held, armor: m.armor, life: m.life, maxLife: m.maxLife, pose: m.pose ?? null });
     if (json === this.lastState) return;
     this.lastState = json;
     this.write(set(child(this.me, 's'), json));

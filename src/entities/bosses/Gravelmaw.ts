@@ -34,7 +34,7 @@ export class Gravelmaw extends Boss {
   }
 
   protected think(ctx: GameContext): void {
-    const pl = ctx.player;
+    const pl = this.target;
     const t = this.attackT;
     switch (this.attack) {
       case 'intro': {

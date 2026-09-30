@@ -20,6 +20,12 @@ export interface ProjectileSpawn {
   scale?: number;
   /** Orbit/anchor behaviour parameters. */
   orbit?: { radius: number; speed: number; angle: number; center: Entity };
+  /** Multiplayer: a copy of another player's shot, drawn but harmless here. */
+  ghost?: boolean;
+  /** Multiplayer: created from a network message (never re-broadcast). */
+  fromNet?: boolean;
+  /** Spawned by another projectile (splits); the other games make their own. */
+  derived?: boolean;
 }
 
 /**
@@ -236,7 +242,7 @@ export class Projectile extends Entity {
   }
 
   private checkHits(ctx: GameContext): void {
-    if (this.o.damage <= 0) return;
+    if (this.o.damage <= 0 || this.o.ghost) return;
     const r = this.rect();
     if (this.friendly) {
       for (const e of ctx.entities.enemies) {
@@ -288,7 +294,7 @@ export class Projectile extends Entity {
       ctx.particles.smoke(this.cx, this.cy, 8);
       ctx.audio.play('explosion', { x: this.cx, y: this.cy, volume: 0.6 });
       ctx.shake(0.12);
-      const targets: Actor[] = this.friendly ? ctx.entities.enemies.filter((e) => e.hittable) : [ctx.player];
+      const targets: Actor[] = this.o.ghost || this.o.damage <= 0 ? [] : this.friendly ? ctx.entities.enemies.filter((e) => e.hittable) : [ctx.player];
       for (const t of targets) {
         if (t.dead || this.hit.has(t.id)) continue;
         if (Math.hypot(t.cx - this.cx, t.cy - this.cy) < R + t.w / 2) {
@@ -299,7 +305,7 @@ export class Projectile extends Entity {
     if (d.split) {
       for (let i = 0; i < d.split.count; i++) {
         const a = (i / d.split.count) * Math.PI * 2;
-        ctx.spawnProjectile(d.split.id, this.cx, this.cy, Math.cos(a) * d.split.speed, Math.sin(a) * d.split.speed, { ...this.o, damage: Math.round(this.o.damage * 0.6) });
+        ctx.spawnProjectile(d.split.id, this.cx, this.cy, Math.cos(a) * d.split.speed, Math.sin(a) * d.split.speed, { ...this.o, damage: Math.round(this.o.damage * 0.6), derived: true });
       }
     }
   }

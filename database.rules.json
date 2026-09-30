@@ -153,6 +153,24 @@
               ".validate": "$other === 'uid' || $other === 'name' || $other === 'text' || $other === 't'"
             }
           }
+        },
+        "mobs": {
+          "$tag": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('users').child(auth.uid).child('name').exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists()",
+            ".validate": "$tag.matches(/^[a-z2-9]{5}$/) && newData.isString() && newData.val().length <= 60000"
+          }
+        },
+        "ev": {
+          ".indexOn": [
+            "t"
+          ],
+          "$id": {
+            ".write": "auth != null && auth.token.email_verified === true && root.child('users').child(auth.uid).child('name').exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists() && (!data.exists() || !newData.exists())",
+            ".validate": "newData.hasChildren(['f', 't', 'e']) && newData.child('f').isString() && newData.child('f').val().matches(/^[a-z2-9]{5}$/) && newData.child('e').isString() && newData.child('e').val().length <= 20000 && newData.child('t').val() === now",
+            "$other": {
+              ".validate": "$other === 'f' || $other === 't' || $other === 'e'"
+            }
+          }
         }
       }
     }

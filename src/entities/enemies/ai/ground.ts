@@ -15,7 +15,7 @@ export const jumperAI: AIController = {
       e.mem.t = (e.mem.t ?? Math.random() * 60) + 1;
       if (e.mem.t >= p(e, 'interval', 80)) {
         e.mem.t = 0;
-        const chase = distToPlayer(e, ctx) < 30 * TILE && !ctx.player.dead;
+        const chase = distToPlayer(e, ctx) < 30 * TILE && !e.target.dead;
         const dir = chase ? dirToPlayer(e, ctx) : Math.random() < 0.5 ? -1 : 1;
         const big = chase && Math.random() < 0.35;
         e.vy = -p(e, 'jump', 6.5) * (big ? 1.25 : 1);
@@ -35,7 +35,7 @@ export const walkerAI: AIController = {
   update(e, ctx) {
     const d = distToPlayer(e, ctx);
     let dir: number;
-    if (d < 45 * TILE && !ctx.player.dead) {
+    if (d < 45 * TILE && !e.target.dead) {
       dir = dirToPlayer(e, ctx);
       // Unstick: if not making progress, briefly reverse.
       if (Math.abs(e.vx) < 0.2 && e.onGround) e.mem.stuck = (e.mem.stuck ?? 0) + 1;
@@ -87,7 +87,7 @@ export const chargerAI: AIController = {
       case 'charge': {
         const jumped = walk(e, ctx, e.mem.dir ?? 1, p(e, 'charge', 4), p(e, 'jump', 6.5), 0.4);
         if (e.stateTime % 4 === 0 && e.onGround) ctx.particles.dust(e.cx, e.bottom, '#9a8a7a', 1);
-        const passed = (e.mem.dir ?? 1) * (ctx.player.cx - e.cx) < -64;
+        const passed = (e.mem.dir ?? 1) * (e.target.cx - e.cx) < -64;
         if (e.stateTime > 100 || passed || (!jumped && Math.abs(e.vx) < 0.5 && e.stateTime > 10)) e.setState('recover');
         break;
       }
@@ -150,7 +150,7 @@ export const burrowAmbushAI: AIController = {
       physics(e, ctx);
       e.vx = 0;
       if (e.age % 20 === 0) ctx.particles.dust(e.cx, e.bottom, '#dcc37a', 1);
-      if (d < p(e, 'trigger', 120) && !ctx.player.dead) {
+      if (d < p(e, 'trigger', 120) && !e.target.dead) {
         e.setState('emerge');
         e.vy = -7;
         e.hittable = true;
@@ -173,13 +173,13 @@ export const burrowAmbushAI: AIController = {
 /** Spider: climbs walls toward the player and drops from ceilings. */
 export const climberAI: AIController = {
   update(e, ctx) {
-    const dir = ctx.player.dead ? (e.mem.dir ?? 1) : dirToPlayer(e, ctx);
+    const dir = e.target.dead ? (e.mem.dir ?? 1) : dirToPlayer(e, ctx);
     const speed = p(e, 'speed', 2) * e.buffs.speedMul();
     const tx = Math.floor((dir > 0 ? e.x + e.w + 1 : e.x - 1) / TILE);
     const wallAhead = ctx.world.isSolid(tx, Math.floor(e.cy / TILE)) || ctx.world.isSolid(tx, Math.floor((e.bottom - 2) / TILE));
     const ceiling = ctx.world.isSolid(Math.floor(e.cx / TILE), Math.floor((e.y - 2) / TILE));
-    const playerBelow = ctx.player.cy > e.cy + 32 && Math.abs(ctx.player.cx - e.cx) < 40;
-    if (wallAhead && ctx.player.cy < e.bottom + 8) {
+    const playerBelow = e.target.cy > e.cy + 32 && Math.abs(e.target.cx - e.cx) < 40;
+    if (wallAhead && e.target.cy < e.bottom + 8) {
       e.setState('climb');
       e.vy = -speed;
       e.vx = dir * 0.5;
@@ -210,7 +210,7 @@ export const mimicAI: AIController = {
       gravity(e, ctx);
       physics(e, ctx);
       e.vx = 0;
-      if (d < 56 && !ctx.player.dead) wake(e, ctx);
+      if (d < 56 && !e.target.dead) wake(e, ctx);
       return;
     }
     gravity(e, ctx);
@@ -244,7 +244,7 @@ export const archerAI: AIController = {
     const range = p(e, 'range', 320);
     const see = canSeePlayer(e, ctx, range * 1.3);
     let dir = 0;
-    if (!ctx.player.dead && d < 50 * TILE) {
+    if (!e.target.dead && d < 50 * TILE) {
       if (!see || d > range) dir = dirToPlayer(e, ctx);
       else if (d < range * 0.4) dir = -dirToPlayer(e, ctx);
     }

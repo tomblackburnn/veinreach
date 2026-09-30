@@ -140,6 +140,15 @@ async function main(): Promise<void> {
   check('movement syncs', b.msgs.some((m) => m.t === 'state' && m.x === 110));
   check('roster shows both members online', a.t.roster().members.filter((m) => m.online).length === 2, a.t.roster());
 
+  console.log('— Shared creatures');
+  a.t.send({ t: 'mobs', tag: 'aaaa2', list: [{ n: 'aaaa2.1', id: 'gloop', x: 100, y: 200, vx: 0, vy: 0, f: 1, l: 20, ml: 22, s: 'idle', dm: 7, df: 0 }] });
+  b.t.send({ t: 'ev', tag: 'bbbb3', ev: [{ k: 'hit', n: 'aaaa2.1', d: 5, kb: 1, dx: 1 }] });
+  await sleep(700);
+  check('creature snapshots reach other players', b.msgs.some((m) => m.t === 'mobs' && m.tag === 'aaaa2' && m.list[0]?.id === 'gloop'));
+  check('hits reach the creature’s owner', a.msgs.some((m) => m.t === 'ev' && m.tag === 'bbbb3' && m.ev[0]?.k === 'hit'));
+  check('non-members cannot send creature data', await denied(set(ref(E.db, `rooms/${code}/mobs/eeee4`), '[]')));
+  check('events need a server timestamp', await denied(set(ref(B.db, `rooms/${code}/ev/x`), { f: 'bbbb3', t: 1, e: '[]' })));
+
   console.log('— Impersonation');
   check('cannot chat as someone else', await denied(set(ref(B.db, `rooms/${code}/chat/x1`), { uid: A.uid, name: nA, text: 'spoof', t: serverTimestamp() })));
   check('cannot chat under a fake name', await denied(set(ref(B.db, `rooms/${code}/chat/x2`), { uid: B.uid, name: nA, text: 'spoof', t: serverTimestamp() })));

@@ -50,14 +50,27 @@ export class ObeliskPrime extends Boss {
     return out;
   }
 
-  protected think(ctx: GameContext): void {
+  protected override netExtra(): Record<string, number | boolean> {
+    return { o: Math.round(this.orbit * 1000) / 1000, so: this.shardsOut };
+  }
+
+  protected override applyNetExtra(ex: Record<string, number | boolean>): void {
+    if (typeof ex.o === 'number') this.orbit = ex.o;
+    if (typeof ex.so === 'boolean') this.shardsOut = ex.so;
+  }
+
+  /** Orbiting shards hurt whoever touches them; each game checks its own player. */
+  protected override localCollisions(ctx: GameContext): void {
     const pl = ctx.player;
-    const t = this.attackT;
-    this.orbit += this.attack === 'overheat' ? 0.01 : 0.035 + this.phase * 0.01;
-    // Orbiting shard contact damage.
     for (const [sx, sy] of this.shardPositions()) {
       if (!pl.dead && Math.abs(pl.cx - sx) < 14 && Math.abs(pl.cy - sy) < 26) pl.hurt(ctx, { damage: Math.round(this.damage * 0.7), knockback: 6, dirX: Math.sign(pl.cx - this.cx) || 1, immunity: 40 });
     }
+  }
+
+  protected think(ctx: GameContext): void {
+    const pl = this.target;
+    const t = this.attackT;
+    this.orbit += this.attack === 'overheat' ? 0.01 : 0.035 + this.phase * 0.01;
     switch (this.attack) {
       case 'intro':
         this.y -= 1.2;

@@ -9,6 +9,7 @@ import { Rng } from '../../utils/random';
 import { drawEnemy } from '../../rendering/sprites/enemySprites';
 import type { LightSource } from '../Entity';
 import { FLAGS } from '../../systems/ProgressionSystem';
+import { nearestPlayer, type PlayerTarget } from '../targeting';
 
 let lootRng = new Rng((Date.now() >>> 0) ^ 0x9e3779b9);
 
@@ -35,6 +36,25 @@ export class Enemy extends Actor {
   head: Enemy | null = null;
   despawnable = true;
   private farTicks = 0;
+  /** Who this creature is after this tick: the nearest living player (local or remote). */
+  target!: PlayerTarget;
+
+  // ---- Multiplayer (see multiplayer/MobSync) ----
+  /** Network id once another player can see this creature: "<owner tag>.<n>". */
+  netId?: string;
+  /** A mirror of a creature simulated by another player's game. */
+  puppet = false;
+  netX = 0;
+  netY = 0;
+  /** MobSync tick of the last snapshot (mirrors) and of our last predicted hit. */
+  netSeen = 0;
+  /** Snapshots in a row this mirror was missing from (removed after a few). */
+  netMissing = 0;
+  lastLocalHit = -999;
+  /** Damage the local player dealt to this mirror (boss loot participation). */
+  localDamage = 0;
+  /** Tag of the player who hit this creature last (they get the loot). */
+  lastHitBy: string | null = null;
 
   constructor(def: EnemyDef, x: number, y: number, scale = 1) {
     super(def.w, def.h);
@@ -64,11 +84,20 @@ export class Enemy extends Actor {
   override hurt(ctx: GameContext, h: HitInfo): number {
     if (!this.hittable) return 0;
     if (this.head && !this.head.dead) return this.head.hurtFromSegment(ctx, h, this);
+    if (this.puppet) return ctx.mp ? ctx.mp.hitPuppet(this, h) : 0;
+    this.creditHit(ctx);
     return super.hurt(ctx, h);
+  }
+
+  /** Remember who is attacking (a remote player's hit, or ours). */
+  private creditHit(ctx: GameContext): void {
+    if (ctx.mp) this.lastHitBy = ctx.mp.applyingHitFrom ?? ctx.mp.tag;
   }
 
   /** Damage routed from a body segment: numbers show at the segment. */
   hurtFromSegment(ctx: GameContext, h: HitInfo, seg: Enemy): number {
+    if (this.puppet) return ctx.mp ? ctx.mp.hitPuppet(this, h, seg) : 0;
+    this.creditHit(ctx);
     const ox = this.x;
     const oy = this.y;
     // Temporarily position text at the segment.
@@ -83,15 +112,62 @@ export class Enemy extends Actor {
   }
 
   update(ctx: GameContext): void {
+    if (this.puppet) {
+      this.puppetUpdate(ctx);
+      return;
+    }
     this.age++;
     this.stateTime++;
     this.frameTime++;
     this.tickStatus(ctx, (id) => !!this.def.immune?.includes(id));
     if (this.dead) return;
+    this.target = nearestPlayer(ctx, this.cx, this.cy);
     this.ai.update(this, ctx);
     if (this.removed) return;
     this.contact(ctx);
     this.checkDespawn(ctx);
+  }
+
+  /** Mirrors follow the owner's snapshots and hurt the local player on contact. */
+  protected puppetUpdate(ctx: GameContext): void {
+    this.age++;
+    this.stateTime++;
+    this.frameTime++;
+    if (this.hitFlash > 0) this.hitFlash--;
+    this.puppetMotion();
+    this.target = nearestPlayer(ctx, this.cx, this.cy);
+    this.ai.puppetUpdate?.(this, ctx);
+    if (!this.dead) this.contact(ctx);
+  }
+
+  /** Extrapolate with the last velocity and ease toward the owner's position. */
+  protected puppetMotion(): void {
+    this.netX += this.vx;
+    this.netY += this.vy;
+    const dx = this.netX - this.x;
+    const dy = this.netY - this.y;
+    if (Math.abs(dx) > 200 || Math.abs(dy) > 200) {
+      this.x = this.netX;
+      this.y = this.netY;
+    } else {
+      this.x += dx * 0.35;
+      this.y += dy * 0.35;
+    }
+  }
+
+  /** Sound and particles for a hit on a mirror (the owner applies the damage). */
+  puppetHurtFx(ctx: GameContext): void {
+    ctx.audio.play('enemyHurt', { x: this.cx, y: this.cy });
+    ctx.particles.emit(this.cx, this.cy, { count: 5, color: this.def.sprite.colors[0], speed: [0.8, 2.5], life: [15, 30], size: [1.5, 3] });
+  }
+
+  /** The owner reported this creature's death; loot only if we landed the killing blow. */
+  puppetDie(ctx: GameContext, killedByUs: boolean): void {
+    this.removed = true;
+    this.dead = true;
+    ctx.audio.play('enemyDie', { x: this.cx, y: this.cy });
+    ctx.particles.emit(this.cx, this.cy, { count: 22, colors: this.def.sprite.colors, speed: [1, 4], life: [20, 45], size: [1.5, 3.5], gravity: 0.15, jitter: this.w / 2 });
+    if (killedByUs) this.dropLoot(ctx);
   }
 
   /** Contact damage against the local player. */
@@ -105,7 +181,7 @@ export class Enemy extends Actor {
 
   protected checkDespawn(ctx: GameContext): void {
     if (!this.despawnable || this.head) return;
-    const p = ctx.player;
+    const p = this.target ?? ctx.player;
     const d = Math.hypot(p.cx - this.cx, p.cy - this.cy);
     if (d > 16 * 110) this.farTicks++;
     else this.farTicks = 0;
@@ -124,7 +200,9 @@ export class Enemy extends Actor {
     ctx.audio.play('enemyDie', { x: this.cx, y: this.cy });
     ctx.particles.emit(this.cx, this.cy, { count: 22, colors: this.def.sprite.colors, speed: [1, 4], life: [20, 45], size: [1.5, 3.5], gravity: 0.15, jitter: this.w / 2 });
     this.ai.onDeath?.(this, ctx);
-    this.dropLoot(ctx);
+    // In multiplayer the player who landed the killing blow gets the loot (in their own game).
+    if (!ctx.mp || !this.lastHitBy || this.lastHitBy === ctx.mp.tag) this.dropLoot(ctx);
+    ctx.mp?.enemyDied(this);
     ctx.worldEvents.onEnemyKilled(this);
     void h;
   }

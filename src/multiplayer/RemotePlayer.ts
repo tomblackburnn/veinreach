@@ -3,7 +3,7 @@ import type { GameContext } from '../core/context';
 import type { Appearance } from '../entities/player/Appearance';
 import { drawPlayer, type PlayerAnim } from '../rendering/sprites/playerSprite';
 import { ItemRegistry } from '../items/ItemRegistry';
-import type { PlayerState } from './protocol';
+import type { PlayerState, PoseNet } from './protocol';
 
 /** Another player's avatar, interpolated from network snapshots. */
 export class RemotePlayer extends Entity {
@@ -15,7 +15,14 @@ export class RemotePlayer extends Entity {
   armor: (string | null)[] = [null, null, null];
   life = 100;
   maxLife = 100;
+  /** Weapon swing / aim, so attacks are visible. */
+  pose: PoseNet | null = null;
   private t = 0;
+
+  /** For creature targeting: remote players who are dead are ignored. */
+  get dead(): boolean {
+    return this.anim === 'dead' || this.life <= 0;
+  }
 
   constructor(
     readonly netId: number,
@@ -40,6 +47,8 @@ export class RemotePlayer extends Entity {
     this.armor = s.armor;
     this.life = s.life;
     this.maxLife = s.maxLife;
+    const pose = s.pose;
+    this.pose = Array.isArray(pose) && pose.length === 5 && (pose[1] === null || ItemRegistry.has(pose[1])) && ['swing', 'hold', 'aim', 'thrust'].includes(pose[2]) ? pose : null;
   }
 
   update(_ctx: GameContext): void {
@@ -63,8 +72,10 @@ export class RemotePlayer extends Entity {
       anim: this.anim,
       t: this.t,
       facing: this.facing,
-      armAngle: null,
-      held: this.held && ItemRegistry.get(this.held).heldLight ? { id: this.held, style: 'hold', angle: 0 } : null,
+      armAngle: this.pose ? this.pose[0] : null,
+      held: this.pose?.[1]
+        ? { id: this.pose[1], style: this.pose[2], angle: this.pose[3], scale: this.pose[4] }
+        : this.held && ItemRegistry.get(this.held).heldLight ? { id: this.held, style: 'hold', angle: 0 } : null,
       alpha: this.anim === 'dead' ? 0.5 : 1,
     });
     g.font = 'bold 7px monospace';

@@ -6,7 +6,7 @@
 import { ItemRegistry } from '../../items/ItemRegistry';
 import type { ChestData } from '../../world/WorldState';
 import type { Slot } from '../../items/ItemStack';
-import type { PlayerState } from '../protocol';
+import type { PlayerState, PoseNet } from '../protocol';
 
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 export const ROOM_CODE_RE = /^[A-Z2-9]{6}$/;
@@ -76,6 +76,7 @@ export function sanitizeState(json: unknown): PlayerState | null {
     armor,
     life: s.life as number,
     maxLife: s.maxLife as number,
+    pose: Array.isArray(s.pose) && s.pose.length === 5 ? (s.pose as PoseNet) : null,
   };
 }
 

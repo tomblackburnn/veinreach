@@ -1,7 +1,8 @@
-import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg, type PlayerInfo } from './protocol';
+import { PROTOCOL_VERSION, type ClientMsg, type ServerMsg, type PlayerInfo, type PoseNet } from './protocol';
 import { WebSocketTransport, type Transport } from './transport';
 import type { GameSession } from '../core/GameSession';
 import { RemotePlayer } from './RemotePlayer';
+import { MobSync } from './MobSync';
 import type { ChestData, PaintingData } from '../world/WorldState';
 import { applyRemotePainting } from '../world/paintings';
 import type { CharacterSave } from '../save/types';
@@ -33,6 +34,8 @@ export class NetworkManager {
   private stateTimer = 0;
   private chatEl: HTMLInputElement | null = null;
   private unsub: (() => void)[] = [];
+  /** Shared creatures, hits, deaths and projectiles (created when the session attaches). */
+  mobs: MobSync | null = null;
 
   private constructor(readonly transport: Transport) {}
 
@@ -90,6 +93,7 @@ export class NetworkManager {
 
   attach(s: GameSession, players: PlayerInfo[] = this.initialPlayers): void {
     this.session = s;
+    this.mobs = new MobSync(s, (m) => this.send(m));
     for (const p of players) if (p.id !== this.id) this.addRemote(p);
     this.unsub.push(
       s.world.onChange((x, y, layer) => {
@@ -143,6 +147,7 @@ export class NetworkManager {
   update(s: GameSession): void {
     if (!this.connected) return;
     this.transport.update?.(s);
+    this.mobs?.tick();
     for (const m of this.queue.splice(0)) this.handle(s, m);
     if (this.pending.length) {
       for (let i = 0; i < this.pending.length; i += 2500) this.send({ t: 'tiles', changes: this.pending.slice(i, i + 2500) });
@@ -154,8 +159,17 @@ export class NetworkManager {
       this.send({
         t: 'state', x: p.x, y: p.y, vx: p.vx, vy: p.vy, facing: p.facing, anim: p.dead ? 'dead' : p.anim,
         held: p.inventory.heldItem()?.id ?? null, armor: p.inventory.armor.slots.map((a) => a?.id ?? null), life: p.life, maxLife: p.maxLife,
+        pose: this.pose(p),
       });
     }
+  }
+
+  /** What the player is doing with their held item, so others see swings and aiming. */
+  private pose(p: GameSession['player']): PoseNet | null {
+    const pose = p.use.pose(p);
+    if (pose.armAngle === null && !pose.held) return null;
+    const r = (v: number) => Math.round(v * 100) / 100;
+    return [pose.armAngle === null ? null : r(pose.armAngle), pose.held?.id ?? null, pose.held?.style ?? 'hold', r(pose.held?.angle ?? 0), r(pose.held?.scale ?? 1)];
   }
 
   private handle(s: GameSession, m: ServerMsg): void {
@@ -204,6 +218,10 @@ export class NetworkManager {
       case 'time':
         if (Math.abs(s.time.time - m.time) > 120) s.time.time = m.time;
         s.time.day = m.day;
+        break;
+      case 'mobs':
+      case 'ev':
+        this.mobs?.receive(m);
         break;
       default:
         break;

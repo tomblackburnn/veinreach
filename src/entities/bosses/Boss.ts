@@ -4,6 +4,8 @@ import type { BossDef } from '../../data/bosses';
 import type { EnemyDef } from '../../data/enemies';
 import type { HitInfo } from '../Actor';
 import { updateHazards, renderHazards, type Hazard } from './hazards';
+import { nearestPlayer } from '../targeting';
+import type { BossNet, HazardNet } from '../../multiplayer/protocol';
 
 function asEnemyDef(b: BossDef): EnemyDef {
   return {
@@ -59,11 +61,11 @@ export abstract class Boss extends Enemy {
   }
 
   protected angleToPlayer(ctx: GameContext, fromX = this.cx, fromY = this.cy): number {
-    return Math.atan2(ctx.player.cy - fromY, ctx.player.cx - fromX);
+    return Math.atan2(this.target.cy - fromY, this.target.cx - fromX);
   }
 
   protected distToPlayer(ctx: GameContext): number {
-    return Math.hypot(ctx.player.cx - this.cx, ctx.player.cy - this.cy);
+    return Math.hypot(this.target.cx - this.cx, this.target.cy - this.cy);
   }
 
   protected fire(ctx: GameContext, id: string, x: number, y: number, angle: number, speed: number, dmgMul = 0.8): void {
@@ -76,7 +78,7 @@ export abstract class Boss extends Enemy {
 
   /** Should the boss leave (player dead/far, wrong time)? */
   protected shouldFlee(ctx: GameContext): string | null {
-    if (ctx.player.dead) return `${this.bdef.name} has claimed another victim.`;
+    if (this.target.dead) return `${this.bdef.name} has claimed ${ctx.entities.remotes.length ? 'its victims' : 'another victim'}.`;
     if (this.distToPlayer(ctx) > 16 * 160) return `${this.bdef.name} has lost interest.`;
     return null;
   }
@@ -91,6 +93,10 @@ export abstract class Boss extends Enemy {
   }
 
   override update(ctx: GameContext): void {
+    if (this.puppet) {
+      this.puppetBossUpdate(ctx);
+      return;
+    }
     this.age++;
     this.frameTime++;
     this.attackT++;
@@ -107,6 +113,7 @@ export abstract class Boss extends Enemy {
     }
     this.tickStatus(ctx, () => true);
     if (this.dead) return;
+    this.target = nearestPlayer(ctx, this.cx, this.cy);
     if (this.shielded > 0) this.shielded--;
     const why = this.shouldFlee(ctx);
     if (why) {
@@ -123,7 +130,88 @@ export abstract class Boss extends Enemy {
     }
     this.think(ctx);
     this.hazards = updateHazards(ctx, this.hazards);
+    this.localCollisions(ctx);
     this.contact(ctx);
+  }
+
+  /** Boss-specific damage to the local player (checked on every player's game). */
+  protected localCollisions(_ctx: GameContext): void {}
+
+  // ---- Multiplayer mirrors (see multiplayer/MobSync) ----
+
+  /** A mirror of another player's boss: follow snapshots, and hurt our player with its body and hazards. */
+  private puppetBossUpdate(ctx: GameContext): void {
+    this.age++;
+    this.frameTime++;
+    this.attackT++;
+    if (this.hitFlash > 0) this.hitFlash--;
+    if (this.dying > 0) {
+      this.deathSequence(ctx);
+      return;
+    }
+    if (this.shielded > 0) this.shielded--;
+    this.puppetMotion();
+    if (this.fleeT > 0) {
+      this.harmful = false;
+      return;
+    }
+    this.target = nearestPlayer(ctx, this.cx, this.cy);
+    this.onPuppetTick(ctx);
+    this.hazards = updateHazards(ctx, this.hazards);
+    this.localCollisions(ctx);
+    this.contact(ctx);
+  }
+
+  /** Per-boss upkeep for mirrors (e.g. rebuilding the Serpent's body). */
+  protected onPuppetTick(_ctx: GameContext): void {}
+
+  /** Extra per-boss state other games need to draw it. */
+  protected netExtra(): Record<string, number | boolean> | undefined {
+    return undefined;
+  }
+
+  protected applyNetExtra(_ex: Record<string, number | boolean>): void {}
+
+  netState(): BossNet {
+    const hz: HazardNet[] = this.hazards.map((h) => ({
+      k: h.kind, x: Math.round(h.x), y: Math.round(h.y), x2: h.x2 !== undefined ? Math.round(h.x2) : undefined, y2: h.y2 !== undefined ? Math.round(h.y2) : undefined,
+      r: h.r, w: h.width, wa: h.warn, ac: h.active, ag: h.age, d: h.damage, c: h.color, pm: h.permanent ? 1 : undefined,
+    }));
+    return { ph: this.phase, at: this.attack, aT: this.attackT, sh: this.shielded, dy: this.dying, fl: this.fleeT || undefined, hz, ex: this.netExtra() };
+  }
+
+  applyNetState(b: BossNet): void {
+    if (typeof b.ph === 'number') this.phase = b.ph;
+    if (typeof b.at === 'string' && b.at !== this.attack) {
+      this.lastAttack = this.attack;
+      this.attack = b.at.slice(0, 24);
+    }
+    if (typeof b.aT === 'number') this.attackT = b.aT;
+    if (typeof b.sh === 'number') this.shielded = b.sh;
+    this.fleeT = typeof b.fl === 'number' ? b.fl : 0;
+    if (Array.isArray(b.hz)) {
+      this.hazards = b.hz.slice(0, 64).map((h) => ({
+        kind: h.k, x: h.x, y: h.y, x2: h.x2, y2: h.y2, r: h.r, width: h.w, warn: h.wa, active: h.ac, age: h.ag, damage: h.d, color: typeof h.c === 'string' ? h.c : '#ff4040', permanent: h.pm === 1,
+      }));
+    }
+    if (b.ex) this.applyNetExtra(b.ex);
+  }
+
+  /** The owner reported the kill: play the death sequence here too. */
+  startPuppetDeath(ctx: GameContext): void {
+    if (this.dying > 0) return;
+    this.dead = true;
+    this.dying = 150;
+    this.harmful = false;
+    this.hazards = [];
+    ctx.audio.play('bossDie', { x: this.cx, y: this.cy });
+    for (const p of ctx.entities.projectiles) if (!p.friendly) p.removed = true;
+  }
+
+  /** Everyone who fought (or was nearby) gets their own boss loot. */
+  private tookPart(ctx: GameContext): boolean {
+    const p = ctx.player;
+    return this.localDamage > 0 || Math.hypot(p.cx - this.cx, p.cy - this.cy) < 16 * 150;
   }
 
   protected onPhase(ctx: GameContext, phase: number): void {
@@ -148,6 +236,7 @@ export abstract class Boss extends Enemy {
     this.hazards = [];
     ctx.audio.play('bossDie', { x: this.cx, y: this.cy });
     for (const p of ctx.entities.projectiles) if (!p.friendly) p.removed = true;
+    ctx.mp?.enemyDied(this);
   }
 
   private deathSequence(ctx: GameContext): void {
@@ -163,7 +252,7 @@ export abstract class Boss extends Enemy {
       ctx.particles.emit(this.cx, this.cy, { count: 150, colors: [...this.bdef.colors, '#ffffff'], speed: [2, 10], life: [40, 90], glow: true, gravity: 0.03, jitter: this.w / 2 });
       ctx.shake(0.9);
       ctx.audio.play('explosion', { x: this.cx, y: this.cy, volume: 1, pitch: 0.5 });
-      this.dropLoot(ctx);
+      if (!this.puppet || this.tookPart(ctx)) this.dropLoot(ctx);
       this.removed = true;
       ctx.bosses.onDefeated(ctx, this);
     }

@@ -28,6 +28,12 @@ const UNLOCK_TEXT: Record<string, string> = {
   solmara: 'The Unmade Star is extinguished. Veinreach is at peace — for now.',
 };
 
+/** Build a boss by id (used for mirrors of another player's boss in multiplayer). */
+export function createBoss(id: string, x: number, y: number): Boss | null {
+  const f = FACTORIES[id];
+  return f ? f(x, y) : null;
+}
+
 /** Summoning rules, active boss tracking, boss music and defeat handling. */
 export class BossManager {
   get active(): Boss[] {

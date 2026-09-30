@@ -6,4 +6,6 @@ export interface AIController {
   onHurt?(e: Enemy, ctx: GameContext): void;
   onDeath?(e: Enemy, ctx: GameContext): void;
   render?(g: CanvasRenderingContext2D, e: Enemy, ctx: GameContext): void;
+  /** Runs on mirrors of another player's creature (no AI), e.g. to rebuild a worm body. */
+  puppetUpdate?(e: Enemy, ctx: GameContext): void;
 }

@@ -3,7 +3,8 @@
  *
  *   npm run server -- --port 7777 --world "My World" --seed 12345 --size medium
  *
- * Shares terrain, block edits, chests, paintings, time, progression flags and chat
+ * Shares terrain, block edits, chests, paintings, time, progression flags,
+ * chat, and creatures (each simulated by one player's game and mirrored)
  * between up to 8 players. Creatures are simulated client-side.
  */
 import { WebSocketServer, WebSocket } from 'ws';
@@ -123,6 +124,13 @@ wss.on('connection', (ws) => {
           host.dirty = true;
           broadcast({ t: 'flag', flag: m.flag }, c.id);
         }
+        break;
+      case 'mobs':
+        // Shared creatures: relayed as-is (each game validates what it applies).
+        if (typeof m.tag === 'string' && m.tag.length <= 8 && Array.isArray(m.list) && m.list.length <= 200) broadcast({ t: 'mobs', tag: m.tag, list: m.list }, c.id);
+        break;
+      case 'ev':
+        if (typeof m.tag === 'string' && m.tag.length <= 8 && Array.isArray(m.ev) && m.ev.length <= 400) broadcast({ t: 'ev', tag: m.tag, ev: m.ev }, c.id);
         break;
       case 'chat': {
         const text = String(m.text ?? '').slice(0, 200).trim();
