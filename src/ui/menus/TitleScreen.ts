@@ -2,6 +2,12 @@ import { h } from '../../utils/dom';
 import type { MenuHost } from './MenuHost';
 import { GAME_TITLE, GAME_VERSION } from '../../core/config';
 
+/** Privacy, Terms and About open in a new tab, so a running game isn't lost. */
+function legalLinks(): HTMLElement {
+  const link = (label: string, href: string) => h('a', { href, target: '_blank', rel: 'noopener' }, label);
+  return h('span', { class: 'legal-links' }, link('Privacy', '/privacy.html'), ' · ', link('Terms', '/terms.html'), ' · ', link('About', '/about.html'));
+}
+
 export function titleScreen(host: MenuHost): HTMLElement {
   return h(
     'div',
@@ -16,7 +22,7 @@ export function titleScreen(host: MenuHost): HTMLElement {
       h('button', { class: 'btn', onclick: () => host.showSettings() }, 'Settings'),
       h('button', { class: 'btn', onclick: () => host.showCredits() }, 'Credits'),
     ),
-    h('div', { class: 'footer' }, h('span', {}, `v${GAME_VERSION}`), h('span', {}, host.saves.persistent ? 'Saves stored in this browser (IndexedDB)' : 'Browser storage unavailable — saves will not persist')),
+    h('div', { class: 'footer' }, h('span', {}, `v${GAME_VERSION}`), legalLinks(), h('span', {}, host.saves.persistent ? 'Saves stored in this browser (IndexedDB)' : 'Browser storage unavailable — saves will not persist')),
   );
 }
 
@@ -28,8 +34,9 @@ export function creditsScreen(host: MenuHost): HTMLElement {
       h('h2', {}, 'Credits'),
       h('div', { class: 'dialog-text' }, 'Veinreach is an original sandbox adventure made with TypeScript, HTML5 Canvas and the Web Audio API.'),
       h('div', { class: 'dialog-text' }, 'All sprites, textures, music and sound effects are generated procedurally at runtime — there are no external art or audio assets.'),
-      h('div', { class: 'dialog-text' }, 'Design & code: the Veinreach team. Inspired by the sandbox-survival genre.'),
-      h('div', { class: 'hint' }, 'Fonts: Silkscreen and VT323 (SIL Open Font License), served by Google Fonts when online.'),
+      h('div', { class: 'dialog-text' }, 'Made by Tom Blackburn. Inspired by the sandbox-survival genre.'),
+      h('div', { class: 'hint' }, 'Fonts: Silkscreen and VT323 (SIL Open Font License), bundled with the game.'),
+      h('div', { class: 'hint' }, legalLinks()),
       h('button', { class: 'btn', onclick: () => host.showTitle() }, 'Back'),
     ),
   );
