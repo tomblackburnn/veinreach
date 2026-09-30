@@ -29,7 +29,7 @@ Nothing is deployed yet. The live database is still in **locked mode**, which de
 ```bash
 npm run emulators           # Auth :9099, Database :9000, Emulator UI :4000
 npm run dev:online          # the game, with online play pointed at the emulators
-npx tsx scripts/online-smoke.ts   # 41 scripted checks: accounts, membership, kick/ban/lock, sync, rules
+npx tsx scripts/online-smoke.ts   # 40 scripted checks: accounts, membership, kick/ban/lock, sync, rules
 ```
 
 ## Accounts

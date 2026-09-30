@@ -74,7 +74,7 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
   - Accounts can own up to 5 worlds and can delete them, or delete the whole account.
   - All of it is enforced by the database rules.
   - App Check is wired up and waiting for the site key.
-  - `scripts/online-smoke.ts` now runs 41 checks.
+  - `scripts/online-smoke.ts` now runs 40 checks.
   - Not deployed yet: waiting for the custom domain.
 - **Online multiplayer with Firebase.**
   - The game deploys to Firebase Hosting.
