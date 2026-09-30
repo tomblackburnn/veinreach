@@ -25,6 +25,9 @@ export function normalizeRoomCode(raw: string): string | null {
   return ROOM_CODE_RE.test(s) ? s : null;
 }
 
+/** Chat is only shown live; messages older than this are deleted. */
+export const CHAT_TTL_MS = 24 * 60 * 60 * 1000;
+
 export const encodeTile = (fg: number, frame: number, wall: number): number => fg + frame * 65536 + wall * 16777216;
 export const decodeTile = (v: number): [number, number, number] => [v % 65536, Math.floor(v / 65536) % 256, Math.floor(v / 16777216)];
 

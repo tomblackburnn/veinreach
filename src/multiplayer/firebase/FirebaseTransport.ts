@@ -12,7 +12,7 @@ import { sanitizeAppearance } from '../../entities/player/Appearance';
 import { sanitizePainting, isPainted } from '../../world/paintings';
 import type { ChestData, PaintingData } from '../../world/WorldState';
 import type { GameSession } from '../../core/GameSession';
-import { encodeTile, decodeTile, encodeLiquid, decodeLiquid, posKey, parsePosKey, sanitizeChest, sanitizeState, parseInfo } from './codec';
+import { encodeTile, decodeTile, encodeLiquid, decodeLiquid, posKey, parsePosKey, sanitizeChest, sanitizeState, parseInfo, CHAT_TTL_MS } from './codec';
 
 export interface RoomMeta {
   name: string;
@@ -159,6 +159,10 @@ export class FirebaseTransport implements Transport {
   }
 
   update(s: GameSession): void {
+    if (++this.chatPruneTick >= 60 * 60 * 10) {
+      this.chatPruneTick = 0;
+      this.pruneChat();
+    }
     // One player (the lowest uid present) keeps the shared clock in step.
     if (++this.timeTick >= TIME_WRITE_TICKS) {
       this.timeTick = 0;
@@ -184,6 +188,7 @@ export class FirebaseTransport implements Transport {
   // ---------------------------------------------------------------------------
 
   private name = 'Player';
+  private chatPruneTick = 0;
 
   private emit(m: ServerMsg): void {
     if (!this.closed) this.onMessage?.(m);
@@ -255,6 +260,7 @@ export class FirebaseTransport implements Transport {
       this.watchChat(),
       ...(this.owner === this.fb.uid ? [this.watch('bans', (k, v) => this.onBan(k, v), (k) => this.onUnban(k))] : []),
     ]);
+    this.pruneChat();
     this.watchOwnMembership();
     this.unsubs.push(
       onValue(child(this.base, 'settings/locked'), (snap) => {
@@ -407,6 +413,13 @@ export class FirebaseTransport implements Transport {
         ),
       );
     });
+  }
+
+  /** Chat is only shown live, so nothing older than a day is kept (the rules check the age on the server). */
+  private pruneChat(): void {
+    void get(query(child(this.base, 'chat'), orderByChild('t'), endAt(Date.now() - CHAT_TTL_MS - 60_000)))
+      .then((old) => old.forEach((c) => void remove(c.ref).catch(() => undefined)))
+      .catch(() => undefined);
   }
 
   /** Only new chat messages are shown (not the backlog). */

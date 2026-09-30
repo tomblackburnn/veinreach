@@ -144,10 +144,11 @@
         },
         "chat": {
           ".indexOn": [
-            "t"
+            "t",
+            "uid"
           ],
           "$msg": {
-            ".write": "auth != null && auth.token.email_verified === true && root.child('users').child(auth.uid).child('name').exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists() && !data.exists()",
+            ".write": "(auth != null && auth.token.email_verified === true && root.child('users').child(auth.uid).child('name').exists() && root.child('rooms').child($room).child('members').child(auth.uid).exists() && !data.exists()) || (auth != null && !newData.exists() && data.exists() && (data.child('uid').val() === auth.uid || (root.child('rooms').child($room).child('members').child(auth.uid).exists() && data.child('t').val() < now - 86400000)))",
             ".validate": "newData.hasChildren(['uid', 'name', 'text', 't']) && newData.child('uid').val() === auth.uid && newData.child('name').val() === root.child('users').child(auth.uid).child('name').val() && newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 200 && newData.child('t').val() === now",
             "$other": {
               ".validate": "$other === 'uid' || $other === 'name' || $other === 'text' || $other === 't'"

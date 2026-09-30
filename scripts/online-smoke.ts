@@ -10,7 +10,7 @@
  */
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, signInWithCredential, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
-import { getDatabase, connectDatabaseEmulator, ref, set, get, update, remove, serverTimestamp } from 'firebase/database';
+import { getDatabase, connectDatabaseEmulator, ref, set, get, update, remove, push, serverTimestamp } from 'firebase/database';
 import { firebaseConfig } from '../src/multiplayer/firebase/config';
 import { FirebaseTransport } from '../src/multiplayer/firebase/FirebaseTransport';
 import type { FirebaseHandle } from '../src/multiplayer/firebase/client';
@@ -57,6 +57,12 @@ async function createRoom(u: FirebaseHandle, name: string, slot: string): Promis
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const DB_NS = new URL(firebaseConfig.databaseURL!).hostname.split('.')[0];
+/** Write as an admin (the emulator skips the rules for "Bearer owner"): used to plant old data. */
+async function adminSet(path: string, value: unknown): Promise<void> {
+  const r = await fetch(`http://127.0.0.1:9000/${path}.json?ns=${DB_NS}`, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify(value) });
+  if (!r.ok) throw new Error(`adminSet ${path}: ${r.status} ${await r.text()}`);
+}
 let failures = 0;
 function check(label: string, ok: boolean, detail?: unknown): void {
   console.log(`${ok ? '✔' : '✘'} ${label}${ok || detail === undefined ? '' : ` — ${JSON.stringify(detail)}`}`);
@@ -199,6 +205,24 @@ async function main(): Promise<void> {
   await sleep(300);
   await update(ref(A.db), { [`rooms/${code}`]: null, [`users/${A.uid}/rooms/1`]: null });
   check('the owner can delete the world and free the slot', !(await get(ref(A.db, `users/${A.uid}/rooms/1`))).exists());
+
+  console.log('— Privacy: chat retention');
+  const P = await googleUser('p1');
+  const Q = await googleUser('q1');
+  const nP = `Pp_${run}`.slice(0, 16);
+  const nQ = `Qq_${run}`.slice(0, 16);
+  await claim(P, nP);
+  await claim(Q, nQ);
+  const pc = await createRoom(P, 'Privacy world', '1');
+  await adminSet(`rooms/${pc}/chat/old1`, { uid: P.uid, name: nP, text: 'ancient', t: Date.now() - 25 * 3600_000 });
+  const qj = join(Q, pc, nQ);
+  await qj.welcome;
+  await sleep(1500);
+  check('chat older than 24 hours is deleted when someone joins', !(await get(ref(P.db, `rooms/${pc}/chat/old1`))).exists());
+  const fresh = push(ref(P.db, `rooms/${pc}/chat`));
+  await set(fresh, { uid: P.uid, name: nP, text: 'hi', t: serverTimestamp() });
+  check('members cannot delete other players’ recent messages', await denied(remove(ref(Q.db, `rooms/${pc}/chat/${fresh.key}`))));
+  check('players can delete their own messages', !(await denied(remove(fresh))));
 
   await Promise.all(apps.map((x) => deleteApp(x)));
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll online checks passed');
