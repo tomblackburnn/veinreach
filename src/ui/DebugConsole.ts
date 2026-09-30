@@ -20,7 +20,7 @@ export class DebugConsole {
 
   constructor(private s: GameSession) {
     this.log = h('div', { class: 'log' });
-    this.input = h('input', { type: 'text', placeholder: 'command (help)' });
+    this.input = h('input', { type: 'text', placeholder: 'command (help)', 'aria-label': 'Debug command' });
     this.input.addEventListener('keydown', (e) => {
       e.stopPropagation();
       if (e.key === 'Enter') {

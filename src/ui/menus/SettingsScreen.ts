@@ -12,7 +12,7 @@ export function buildSettingsPanel(host: GameHost, onBack: () => void): HTMLElem
   };
   const slider = (label: string, key: 'masterVolume' | 'musicVolume' | 'sfxVolume' | 'ambienceVolume' | 'uiScale' | 'zoom' | 'particles', min: number, max: number, step: number, fmt: (v: number) => string) => {
     const val = h('span', { class: 'muted', style: 'min-width:48px;display:inline-block' }, fmt(s[key]));
-    const input = h('input', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(s[key]) });
+    const input = h('input', { type: 'range', min: String(min), max: String(max), step: String(step), value: String(s[key]), 'aria-label': label });
     input.addEventListener('input', () => {
       s[key] = parseFloat(input.value);
       val.textContent = fmt(s[key]);
@@ -21,7 +21,7 @@ export function buildSettingsPanel(host: GameHost, onBack: () => void): HTMLElem
     return [h('span', {}, label), h('span', { class: 'row' }, input, val)];
   };
   const toggle = (label: string, key: 'screenShake' | 'showFps' | 'smoothLighting' | 'developerMode' | 'autosave', hint?: string) => {
-    const input = h('input', { type: 'checkbox' });
+    const input = h('input', { type: 'checkbox', 'aria-label': label });
     input.checked = s[key];
     input.addEventListener('change', () => {
       s[key] = input.checked;

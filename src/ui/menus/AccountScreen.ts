@@ -58,7 +58,7 @@ export function accountScreen(host: MenuHost, c: CharacterSave, st: AccountState
     );
   }
 
-  const name = typing(h('input', { type: 'text', maxlength: '16', placeholder: 'e.g. DeepDelver', style: 'width:260px' }));
+  const name = typing(h('input', { type: 'text', maxlength: '16', placeholder: 'e.g. DeepDelver', style: 'width:260px', 'aria-label': 'Username' }));
   const save = run(async () => {
     const err = await account.claimUsername(name.value.trim());
     if (err) throw new Error(err);

@@ -68,8 +68,8 @@ export function worldSelect(host: MenuHost, c: CharacterSave | null): HTMLElemen
 const WORLD_NAMES = ['Emberfall', 'Hollowmere', 'Cindervale', 'Glimmerreach', 'Thornwood', 'Rustmoor', 'Duskhaven', 'Stonewhisper', 'Aetherdeep', 'Mossgrave'];
 
 export function worldCreate(host: MenuHost, c: CharacterSave | null): HTMLElement {
-  const name = h('input', { type: 'text', value: WORLD_NAMES[Math.floor(Math.random() * WORLD_NAMES.length)], maxlength: '32' });
-  const seed = h('input', { type: 'text', value: randomSeedString(), maxlength: '40' });
+  const name = h('input', { type: 'text', value: WORLD_NAMES[Math.floor(Math.random() * WORLD_NAMES.length)], maxlength: '32', 'aria-label': 'World name' });
+  const seed = h('input', { type: 'text', value: randomSeedString(), maxlength: '40', 'aria-label': 'World seed' });
   for (const i of [name, seed]) {
     i.addEventListener('focus', () => (host.input.typing = true));
     i.addEventListener('blur', () => (host.input.typing = false));

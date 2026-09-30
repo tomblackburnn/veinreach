@@ -139,7 +139,7 @@ export class CreativePanel {
 
   // ---------------- Items ----------------
   private renderItems(): void {
-    const input = h('input', { type: 'text', placeholder: 'Search items...', value: this.search, style: 'width:100%' });
+    const input = h('input', { type: 'text', placeholder: 'Search items...', value: this.search, 'aria-label': 'Search items', style: 'width:100%' });
     input.addEventListener('focus', () => (this.s.input.typing = true));
     input.addEventListener('blur', () => (this.s.input.typing = false));
     const grid = h('div', { class: 'grid creative-grid' });

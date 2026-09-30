@@ -76,7 +76,7 @@ export function characterSelect(host: MenuHost, next: CharacterNext): HTMLElemen
 export function characterCreate(host: MenuHost, next: CharacterNext): HTMLElement {
   let app: Appearance = randomAppearance();
   let difficulty: Difficulty = 'wanderer';
-  const nameInput = h('input', { type: 'text', value: '', placeholder: 'Name your hero', maxlength: '24' });
+  const nameInput = h('input', { type: 'text', value: '', placeholder: 'Name your hero', maxlength: '24', 'aria-label': 'Character name' });
   nameInput.addEventListener('focus', () => (host.input.typing = true));
   nameInput.addEventListener('blur', () => (host.input.typing = false));
   const previewBox = h('div', { class: 'preview-box' });
@@ -85,10 +85,16 @@ export function characterCreate(host: MenuHost, next: CharacterNext): HTMLElemen
     previewBox.replaceChildren(preview(app));
     renderForm();
   };
-  const swatches = (colors: string[], key: keyof Appearance) =>
-    h('div', { class: 'swatches' }, ...colors.map((c) => h('div', { class: `swatch ${app[key] === c ? 'sel' : ''}`, style: `background:${c}`, onclick: () => { (app as unknown as Record<string, unknown>)[key] = c; redraw(); } })));
-  const colorPick = (key: keyof Appearance) => {
-    const i = h('input', { type: 'color', value: String(app[key]), style: 'width:40px;height:30px;border:none;background:none' });
+  const swatches = (colors: string[], key: keyof Appearance, label: string) =>
+    h('div', { class: 'swatches', role: 'group', 'aria-label': label }, ...colors.map((c, i) =>
+      h('button', { type: 'button', class: `swatch ${app[key] === c ? 'sel' : ''}`, style: `background:${c}`, 'aria-label': `${label} ${i + 1}`, 'aria-pressed': String(app[key] === c), onclick: () => {
+        (app as unknown as Record<string, unknown>)[key] = c;
+        redraw();
+        // Keep keyboard focus on the same swatch after the form re-renders.
+        (form.querySelector(`[aria-label="${label} ${i + 1}"]`) as HTMLElement | null)?.focus();
+      } })));
+  const colorPick = (key: keyof Appearance, label: string) => {
+    const i = h('input', { type: 'color', value: String(app[key]), style: 'width:40px;height:30px;border:none;background:none', 'aria-label': `${label} colour` });
     i.addEventListener('input', () => {
       (app as unknown as Record<string, unknown>)[key] = i.value;
       previewBox.replaceChildren(preview(app));
@@ -100,15 +106,15 @@ export function characterCreate(host: MenuHost, next: CharacterNext): HTMLElemen
     form.append(
       h('span', {}, 'Name'), nameInput,
       h('span', {}, 'Hair style'), h('div', { class: 'row' },
-        h('button', { class: 'btn small', onclick: () => { app.hairStyle = (app.hairStyle + HAIR_STYLES - 1) % HAIR_STYLES; redraw(); } }, '<'),
+        h('button', { class: 'btn small', 'aria-label': 'Previous hair style', onclick: () => { app.hairStyle = (app.hairStyle + HAIR_STYLES - 1) % HAIR_STYLES; redraw(); } }, '<'),
         h('span', {}, `Style ${app.hairStyle + 1}`),
-        h('button', { class: 'btn small', onclick: () => { app.hairStyle = (app.hairStyle + 1) % HAIR_STYLES; redraw(); } }, '>')),
-      h('span', {}, 'Hair colour'), h('div', { class: 'row' }, swatches(HAIR_COLORS, 'hairColor'), colorPick('hairColor')),
-      h('span', {}, 'Skin'), swatches(SKIN_TONES, 'skinColor'),
-      h('span', {}, 'Eyes'), h('div', { class: 'row' }, colorPick('eyeColor')),
-      h('span', {}, 'Shirt'), h('div', { class: 'row' }, swatches(CLOTH_COLORS, 'shirtColor'), colorPick('shirtColor')),
-      h('span', {}, 'Trousers'), h('div', { class: 'row' }, swatches(['#4a3a2a', '#2a3a5a', '#3a3a3a', '#5a4a3a', '#6a2a2a', '#2a4a2a'], 'pantsColor'), colorPick('pantsColor')),
-      h('span', {}, 'Shoes'), swatches(['#3a2a1a', '#2a2a2a', '#5a3a1a', '#6a6a6a'], 'shoeColor'),
+        h('button', { class: 'btn small', 'aria-label': 'Next hair style', onclick: () => { app.hairStyle = (app.hairStyle + 1) % HAIR_STYLES; redraw(); } }, '>')),
+      h('span', {}, 'Hair colour'), h('div', { class: 'row' }, swatches(HAIR_COLORS, 'hairColor', 'Hair colour'), colorPick('hairColor', 'Hair')),
+      h('span', {}, 'Skin'), swatches(SKIN_TONES, 'skinColor', 'Skin tone'),
+      h('span', {}, 'Eyes'), h('div', { class: 'row' }, colorPick('eyeColor', 'Eye')),
+      h('span', {}, 'Shirt'), h('div', { class: 'row' }, swatches(CLOTH_COLORS, 'shirtColor', 'Shirt colour'), colorPick('shirtColor', 'Shirt')),
+      h('span', {}, 'Trousers'), h('div', { class: 'row' }, swatches(['#4a3a2a', '#2a3a5a', '#3a3a3a', '#5a4a3a', '#6a2a2a', '#2a4a2a'], 'pantsColor', 'Trouser colour'), colorPick('pantsColor', 'Trouser')),
+      h('span', {}, 'Shoes'), swatches(['#3a2a1a', '#2a2a2a', '#5a3a1a', '#6a6a6a'], 'shoeColor', 'Shoe colour'),
       h('span', {}, 'Difficulty'), h('div', { class: 'col', style: 'gap:4px' }, ...(Object.keys(DIFFICULTIES) as Difficulty[]).map((d) => h('label', { class: 'row', style: 'gap:6px;cursor:pointer' },
         (() => { const r = h('input', { type: 'radio', name: 'diff' }); r.checked = d === difficulty; r.addEventListener('change', () => (difficulty = d)); return r; })(),
         h('b', {}, DIFFICULTIES[d].name), h('span', { class: 'hint' }, DIFFICULTIES[d].description)))),

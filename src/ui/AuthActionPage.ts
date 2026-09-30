@@ -50,7 +50,7 @@ export async function showAuthActionPage(root: HTMLElement): Promise<void> {
     }
     if (op === 'resetPassword') {
       const email = await verifyPasswordResetCode(auth, oobCode);
-      const pass = h('input', { type: 'password', placeholder: 'New password (8+ characters)', autocomplete: 'new-password', style: 'width:100%;box-sizing:border-box' });
+      const pass = h('input', { type: 'password', placeholder: 'New password (8+ characters)', 'aria-label': 'New password', autocomplete: 'new-password', style: 'width:100%;box-sizing:border-box' });
       const msg = h('div', { class: 'hint account-msg' });
       const save = h('button', { class: 'btn good' }, 'Set new password');
       save.addEventListener('click', async () => {

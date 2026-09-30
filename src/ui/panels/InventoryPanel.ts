@@ -72,7 +72,7 @@ export class InventoryPanel {
     this.craftList = h('div', { class: 'craft-list' });
     this.craftDetail = h('div', { class: 'craft-detail' });
     this.expandBtn = h('button', { class: 'btn small', title: 'Show a bigger crafting list (hides Equipment while expanded)', onclick: () => this.setExpanded(!this.expanded) });
-    this.searchEl = h('input', { type: 'text', class: 'craft-search', placeholder: 'Search recipes…', maxlength: '30' });
+    this.searchEl = h('input', { type: 'text', class: 'craft-search', placeholder: 'Search recipes…', maxlength: '30', 'aria-label': 'Search recipes' });
     this.searchEl.addEventListener('input', () => (this.recipeKey = ''));
     this.searchEl.addEventListener('focus', () => (this.s.input.typing = true));
     this.searchEl.addEventListener('blur', () => (this.s.input.typing = false));
@@ -224,7 +224,7 @@ export class InventoryPanel {
     const grid = h('div', { class: 'grid' }, ...this.makeViews(this.chestContainer, () => ({})));
     const c = this.chestContainer;
     const inv = this.s.player.inventory;
-    const nameInput = h('input', { type: 'text', value: chest.name ?? '', placeholder: 'Chest', maxlength: '24', style: 'width:160px;font-size:18px' });
+    const nameInput = h('input', { type: 'text', value: chest.name ?? '', placeholder: 'Chest', maxlength: '24', 'aria-label': 'Chest name', style: 'width:160px;font-size:18px' });
     nameInput.addEventListener('focus', () => (this.s.input.typing = true));
     nameInput.addEventListener('blur', () => {
       this.s.input.typing = false;

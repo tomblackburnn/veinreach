@@ -49,3 +49,13 @@ describe('keyboard access', () => {
     expect(root.querySelector('[role="dialog"]')).toBeNull();
   });
 });
+
+import { readFileSync } from 'node:fs';
+
+describe('labels', () => {
+  it('the game view and page are described', () => {
+    const html = readFileSync('index.html', 'utf8');
+    expect(html).toMatch(/<canvas id="game-canvas" role="img" aria-label="[^"]+"/);
+    expect(html).toMatch(/<meta name="description" content="[^"]{20,}"/);
+  });
+});

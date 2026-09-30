@@ -30,7 +30,7 @@ export function multiplayerScreen(host: MenuHost, c: CharacterSave, online: Onli
   };
 
   // --- Join by code ---
-  const code = typing(h('input', { type: 'text', placeholder: 'e.g. K7QM2X', maxlength: '8', style: 'width:160px;text-transform:uppercase;letter-spacing:3px' }));
+  const code = typing(h('input', { type: 'text', placeholder: 'e.g. K7QM2X', maxlength: '8', 'aria-label': 'World code', style: 'width:160px;text-transform:uppercase;letter-spacing:3px' }));
   const joinErr = h('div', { class: 'hint', style: 'color:#ff9a8a' });
   const join = () => {
     const v = normalize(code.value);
@@ -43,8 +43,8 @@ export function multiplayerScreen(host: MenuHost, c: CharacterSave, online: Onli
   code.addEventListener('keydown', (e) => e.key === 'Enter' && join());
 
   // --- Create ---
-  const name = typing(h('input', { type: 'text', value: `${c.name}'s World`, maxlength: '32', style: 'width:260px' }));
-  const seed = typing(h('input', { type: 'text', placeholder: 'random', maxlength: '64', style: 'width:260px' }));
+  const name = typing(h('input', { type: 'text', value: `${c.name}'s World`, maxlength: '32', 'aria-label': 'World name', style: 'width:260px' }));
+  const seed = typing(h('input', { type: 'text', placeholder: 'random', maxlength: '64', 'aria-label': 'World seed', style: 'width:260px' }));
   let size: WorldSizeKey = 'medium';
   const sizeRow = h('div', { class: 'row', style: 'flex-wrap:wrap' });
   const renderSizes = () => sizeRow.replaceChildren(...(Object.keys(WORLD_SIZES) as WorldSizeKey[]).map((k) => h('button', { class: `btn small ${k === size ? 'gold' : ''}`, onclick: () => { size = k; renderSizes(); } }, WORLD_SIZES[k].label)));
@@ -78,7 +78,7 @@ export function multiplayerScreen(host: MenuHost, c: CharacterSave, online: Onli
   renderRecent();
 
   // --- Self-hosted ---
-  const url = typing(h('input', { type: 'text', value: host.settings.multiplayerUrl, style: 'width:300px' }));
+  const url = typing(h('input', { type: 'text', value: host.settings.multiplayerUrl, 'aria-label': 'Server address', style: 'width:300px' }));
   const advanced = h('details', { class: 'mp-advanced' },
     h('summary', {}, 'Self-hosted server (advanced)'),
     h('div', { class: 'hint' }, 'Run "npm run server" from the project folder (default ws://localhost:7777) and connect here. The server validates every edit, but you have to keep it running yourself.'),
