@@ -68,6 +68,12 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- Fixed: dry gaps in the underworld's lava lakes. Lakes are flood-filled after smoothing, so the space under islands and overhangs fills too.
+  - Ashen Spires over a lake now stand on a brick plinth, so their doorways sit above the lava.
+  - Liquids are woken again whenever the player reaches a new area (not just on load), and lava beside an open gap now counts as unsettled, so older worlds heal when visited.
+  - `GEN_VERSION` is now 3.
+- Fixed: Cinder Imps and Hexcallers followed players anywhere by teleporting. Casters now blink at most once every 3 s and only toward a player within 50 tiles; players who leave are left behind and the caster despawns.
+
 - **Terraria-style shared combat.**
   - Creatures and bosses are simulated by one player's game and mirrored on the others.
   - Hits count for everyone, and creatures chase and hurt every player.

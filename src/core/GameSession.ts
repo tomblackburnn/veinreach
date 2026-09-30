@@ -124,6 +124,9 @@ export class GameSession implements GameContext {
   private planterId = TileRegistry.id('planter');
   /** Online: the host's single-player copy of this world, saved alongside. */
   private linkedLocal: WorldRecord | null = null;
+  /** Where liquids were last woken around the player (tiles). */
+  private liquidWakeX = 0;
+  private liquidWakeY = 0;
   private linkedSaved = false;
   private disposed = false;
   private unsubscribers: (() => void)[] = [];
@@ -223,7 +226,7 @@ export class GameSession implements GameContext {
     this.bus.on('saveRequested', ({ reason }) => void this.save(reason));
     this.bus.on('message', ({ text, color }) => this.hud.message(text, color));
     this.bus.on('playerDied', ({ cause }) => this.onPlayerDied(cause));
-    this.liquids.wakeArea(this.player.tileX - 120, this.player.tileY - 80, this.player.tileX + 120, this.player.tileY + 80);
+    this.wakeLiquidsAroundPlayer();
     // Resume an interrupted Unsealing.
     if (this.progression.has(FLAGS.unsealed) && !this.progression.has('unseal:done')) this.unsealGen = unsealWorld(this, this.record.meta.seed);
     this.net?.attach(this);
@@ -377,6 +380,7 @@ export class GameSession implements GameContext {
     this.npcs.update(this);
     this.entities.update(this);
     this.mining.update();
+    if (Math.abs(this.player.tileX - this.liquidWakeX) > 40 || Math.abs(this.player.tileY - this.liquidWakeY) > 30) this.wakeLiquidsAroundPlayer();
     if (this.tick % 3 === 0) this.liquids.step(this.player.tileX, this.player.tileY, 110);
     this.randomTicks.update(this);
     this.particles.update();
@@ -598,6 +602,14 @@ export class GameSession implements GameContext {
     }
     this.record.meta.bossesDefeated = this.progression.bossesDefeated();
     this.record.meta.unsealed = this.progression.has(FLAGS.unsealed);
+  }
+
+  /** Let unsettled liquid near the player flow (on load, and on reaching new areas). */
+  private wakeLiquidsAroundPlayer(): void {
+    const { tileX: x, tileY: y } = this.player;
+    this.liquidWakeX = x;
+    this.liquidWakeY = y;
+    this.liquids.wakeArea(x - 120, y - 80, x + 120, y + 80);
   }
 
   private stepUnsealing(): void {

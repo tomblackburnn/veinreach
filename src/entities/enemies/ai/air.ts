@@ -114,6 +114,11 @@ export const ghostAI: AIController = {
   },
 };
 
+/** How far away (px) a player can be for a caster to still blink toward them. */
+const CASTER_LEASH = TILE * 50;
+/** Ticks between a caster's blinks. */
+const CASTER_BLINK_COOLDOWN = 180;
+
 /** Stands and casts; teleports near the player when out of range or sight. */
 export const casterAI: AIController = {
   update(e, ctx) {
@@ -146,8 +151,15 @@ export const casterAI: AIController = {
       return;
     }
     e.mem.unseen = see ? 0 : (e.mem.unseen ?? 0) + 1;
-    if ((e.mem.unseen ?? 0) > 200 || distToPlayer(e, ctx) > p(e, 'teleport', 300) * 1.8) {
-      if (teleportNear(e, ctx, flying)) e.mem.unseen = 0;
+    // Blink closer now and then, but only while the player is still nearby: someone
+    // who leaves the area leaves the caster behind (so it despawns instead of following).
+    e.mem.tp = (e.mem.tp ?? 0) - 1;
+    const d = distToPlayer(e, ctx);
+    if (e.mem.tp <= 0 && d < CASTER_LEASH && ((e.mem.unseen ?? 0) > 200 || d > p(e, 'teleport', 300) * 1.8)) {
+      if (teleportNear(e, ctx, flying)) {
+        e.mem.unseen = 0;
+        e.mem.tp = CASTER_BLINK_COOLDOWN;
+      }
     }
   },
 };

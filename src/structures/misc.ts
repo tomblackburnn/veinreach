@@ -97,16 +97,24 @@ export function buildShrine(ctx: GenContext, rng: Rng, cx: number, cy: number): 
 /** Ruined ember-brick tower in Emberdeep. */
 export function buildSpire(ctx: GenContext, rng: Rng, x: number): void {
   const L = ctx.world.layers;
-  // Find the floor.
+  // Find the floor: the ground, or the surface of a lava lake.
   let floor = L.underworldY + 20;
-  while (floor < ctx.H - 5 && !ctx.solid(x + 5, floor)) floor++;
+  while (floor < ctx.H - 5 && !ctx.solid(x + 5, floor) && !ctx.world.getLiquid(x + 5, floor)) floor++;
   const w = rng.int(11, 15);
   const h = rng.int(22, 34);
   const y = floor - h;
   if (y < L.underworldY - 10) return;
   buildRoom(ctx, x, y, w, h, { shell: 'ember_brick', wall: 'ember_wall', decay: 0.08 }, rng);
-  // Foundation into the ground.
-  fillRect(ctx, x, floor, w, 3, 'ember_brick');
+  // Foundation into the ground; over a lake it's a plinth down to the lake bed,
+  // which keeps the doorways above the lava.
+  const brick = TileRegistry.id('ember_brick');
+  for (let xx = x; xx < x + w; xx++) {
+    for (let yy = floor; yy < ctx.H - 3 && (yy < floor + 3 || !ctx.solid(xx, yy)); yy++) {
+      if (!ctx.inside(xx, yy, 1)) continue;
+      ctx.world.setFg(xx, yy, brick, 0);
+      ctx.world.setLiquid(xx, yy, 0, 0);
+    }
+  }
   for (let fy = y + 7; fy < floor - 2; fy += 7) platformRow(ctx, x + 1, fy, w - 2);
   for (let dy = h - 4; dy < h - 1; dy++) {
     ctx.world.setFg(x, y + dy, 0, 0);

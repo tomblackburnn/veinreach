@@ -49,6 +49,6 @@ export type WorldSizeKey = keyof typeof WORLD_SIZES;
 export const AUTOSAVE_SECONDS = 45;
 export const SAVE_VERSION = 1;
 /** Bump whenever world generation output changes; worlds remember the version they were made with. */
-export const GEN_VERSION = 2;
+export const GEN_VERSION = 3;
 export const GAME_TITLE = 'Veinreach';
 export const GAME_VERSION = '0.1.0';

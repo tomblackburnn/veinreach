@@ -35,10 +35,18 @@ export class LiquidSystem {
     const w = this.world;
     for (let y = Math.max(0, y0); y < Math.min(w.height, y1); y++) {
       for (let x = Math.max(0, x0); x < Math.min(w.width, x1); x++) {
-        if (w.getLiquid(x, y) > 0 && w.getLiquid(x, y) < 255) this.active.add(y * w.width + x);
-        else if (w.getLiquid(x, y) > 0 && !w.isSolid(x, y + 1) && w.getLiquid(x, y + 1) < 255) this.active.add(y * w.width + x);
+        const a = w.getLiquid(x, y);
+        if (a > 0 && (a < 255 || this.canFall(x, y) || this.canSpread(x - 1, y, a) || this.canSpread(x + 1, y, a))) this.active.add(y * w.width + x);
       }
     }
+  }
+
+  private canFall(x: number, y: number): boolean {
+    return y + 1 < this.world.height && !this.world.isSolid(x, y + 1) && this.world.getLiquid(x, y + 1) < 255;
+  }
+
+  private canSpread(x: number, y: number, amt: number): boolean {
+    return this.world.inBounds(x, y) && !this.world.isSolid(x, y) && this.world.getLiquid(x, y) + 2 < amt;
   }
 
   step(cx: number, cy: number, radius: number): void {

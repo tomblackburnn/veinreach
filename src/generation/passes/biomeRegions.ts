@@ -208,13 +208,6 @@ export function* emberdeep(ctx: GenContext): Generator<number> {
     const y = rng.int(ceilBase + 10, floorBase - 10);
     for (let k = 0; k < 6; k++) ctx.blob(x + rng.int(-6, 6), y + rng.int(-2, 2), rng.range(2, 4), T.ash, new Set([0]));
   }
-  // Lava lakes on the floor.
-  for (let x = 2; x < W - 2; x++) {
-    let y = floorBase - 14;
-    while (y < H - 3 && world.getFg(x, y) === 0) y++;
-    const lavaLevel = floorBase - 3;
-    for (let yy = lavaLevel; yy < y; yy++) world.setLiquid(x, yy, 255, LIQUID.lava);
-  }
   // Cindrite ore.
   const hosts = new Set([T.ash, magma]);
   for (let i = 0; i < W / 14; i++) {
@@ -227,6 +220,18 @@ export function* emberdeep(ctx: GenContext): Generator<number> {
     }
   }
   cellularCleanup(ctx, top - 4, H - 3);
+  // Lava lakes on the floor: flood every open cell below the lava line that
+  // connects to a lake, so the space under islands and overhangs fills too.
+  const lavaLevel = floorBase - 3;
+  const open: number[] = [];
+  for (let x = 0; x < W; x++) if (world.getFg(x, lavaLevel) === 0) open.push(x, lavaLevel);
+  while (open.length) {
+    const y = open.pop()!;
+    const x = open.pop()!;
+    if (x < 0 || x >= W || y < lavaLevel || y >= H - 3 || world.getFg(x, y) !== 0 || world.getLiquid(x, y)) continue;
+    world.setLiquid(x, y, 255, LIQUID.lava);
+    open.push(x - 1, y, x + 1, y, x, y + 1, x, y - 1);
+  }
   yield 1;
 }
 
