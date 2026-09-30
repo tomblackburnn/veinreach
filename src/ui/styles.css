@@ -10,7 +10,7 @@
   --text: #efe6d8;
   --muted: #a898b8;
   --good: #7ae07a;
-  --bad: #ff6a6a;
+  --bad: #ff7070;
   --mana: #5a7aff;
   --life: #e8344a;
   --slot: #1b1424;
@@ -66,8 +66,8 @@ img.icon { image-rendering: pixelated; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.6); }
 .btn.small { font-size: 11px; padding: 5px 10px; min-width: 0; }
 .btn.danger { background: linear-gradient(#8a3a3a, #5a2424); }
-.btn.good { background: linear-gradient(#3a7a4a, #245a30); }
-.btn.gold { background: linear-gradient(#b8862a, #7a5a1a); }
+.btn.good { background: linear-gradient(#2f6a3d, #1f4f2a); }
+.btn.gold { background: linear-gradient(#86601e, #5e4412); }
 .row { display: flex; gap: 10px; align-items: center; }
 .col { display: flex; flex-direction: column; gap: 10px; }
 .spacer { flex: 1; }
