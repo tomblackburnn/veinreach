@@ -106,4 +106,11 @@ Entity (position, velocity, facing, light())
 - **World delivery:** the server regenerates the world from the seed with the same generator code and sends only modifications on join.
 - **Paintings** are object data (not tiles). They are sent as `paint` messages, validated by the server (canvas present at the origin, correct art size, sender in range), stored in the server save, and included in `welcome`. Breaking a canvas drops its painting on every side.
 - **Edits:** clients send resulting tile diffs (`[x, y, fg, frame, wall]`) rather than high-level operations, so cascades such as tree felling replicate exactly. The server checks bounds, id validity, distance from the sender and rate, applies the diff and relays it.
-- **Client-simulated state:** creatures and bosses are simulated per client today. The path to server authority is laid out in the roadmap: enemy snapshots from a host or server simulation reusing `Enemy`, with the headless `SimContext` in the tests as a starting point.
+- **Shared creatures (`MobSync`):**
+  - **Owner:** each creature is simulated by the game that spawned it.
+  - **Mirrors:** other games get `puppet` enemies (`Enemy.puppet`, `Boss.applyNetState`) that interpolate snapshots and apply contact, hazard and boss-specific collisions (`Boss.localCollisions`) to their own player.
+  - **Hits:** a hit on a puppet is rolled locally (`MobSync.hitPuppet`) and sent to the owner, who applies the exact amount.
+  - **Targeting:** creatures target the nearest player (`entities/targeting.ts`).
+  - **Loot:** decided per game — normal loot for the killer, boss loot for every participant.
+  - **Tests:** `tests/multiplayer.test.ts` connects two headless games through a JSON relay.
+- **Linked worlds (`linkedWorlds.ts`):** the host's single-player save of an online world records offline edits, pulls online changes before play, and uploads pending edits when the host next plays online.

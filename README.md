@@ -186,20 +186,27 @@ The same seed and size always produce the same world. This is covered by a test.
 
 ## Multiplayer
 
-There are two ways to play together. Both share the same things:
-- Terrain from the shared seed, plus everyone's block and wall edits.
-- Chests, paintings and bucket liquids.
-- Time of day and world progression flags (a boss kill unlocks progression for everyone, including the Unsealing).
-- Chat (press Enter) and player avatars (position, animation, armour, held item).
+Playing together works like Terraria:
+- **Shared world:** terrain from the shared seed plus everyone's block and wall edits. Chests, paintings, bucket liquids, time of day, world progression (a boss kill unlocks progression for everyone, including the Unsealing) and chat (press Enter) are shared too.
+- **Shared creatures and bosses:**
+  - Every creature is simulated by one player's game (whoever spawned it, or whoever summoned the boss) and mirrored on everyone else's, about 10 times a second.
+  - Hit anything and the damage shows immediately and counts for everyone: health bars match and a kill is a kill.
+  - Creatures chase the nearest player. Contact damage, boss hazards and creature projectiles hurt every player.
+- **Loot:** normal loot goes to the player who landed the killing blow. Every player who took part in a boss fight gets their own boss loot.
+- **Seeing each other:** player avatars show position, animation, armour, and weapon swings and aim. Other players' projectiles are visible.
 
-Creatures, bosses, projectiles, dropped items and liquid flow are still simulated separately for each player. See [docs/ROADMAP.md](docs/ROADMAP.md).
+Not shared: dropped items lying on the ground, townsfolk (each game has its own) and world events such as invasions (each game runs its own).
 
 ### Online worlds (Firebase) — the default
 
 Open **Multiplayer** from the main menu and sign in with Google. Every account picks a unique username, and that's all other players see. Single-player never needs an account.
 - **Create & Play** makes a new online world with a six-character code (for example `K7QM2X`). Share the code; members can play any time, even when you're offline. Each account can own up to 5 worlds.
 - **Join a friend** joins a world by its code. Your own and recently joined worlds are listed for one-click play.
-- **Put one of your worlds online** copies a saved single-player world into a new online world. Your local save is not changed.
+- **Put one of your worlds online** turns a saved single-player world into an online world.
+- **Your single-player copy:** the world you create or put online also appears in your **single-player** world list, marked *Online · CODE*. It stays in step:
+  - Playing online saves into it.
+  - Opening it in single-player first pulls in what friends changed online.
+  - What you change in single-player is uploaded for everyone the next time you open the world online.
 - **Owners** open **Esc → Online World** to see who's playing, **kick** or **ban** players, and **lock** the world so nobody new can join.
 
 The Firebase security rules enforce all of this: only members can read or change a world, bans and locks can't be bypassed, and nobody can impersonate another player's name or chat. App Check is ready to switch on once the site has its domain. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for going live, the emulators and the full rules.

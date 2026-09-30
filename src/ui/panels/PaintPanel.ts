@@ -112,7 +112,7 @@ export class PaintPanel {
     else w.paintings.delete(key);
     const [tw, th] = TileRegistry.get(w.getFg(this.ox, this.oy)).size ?? [1, 1];
     w.invalidateRender(this.ox, this.oy, tw, th);
-    this.s.net?.sendPainting(data);
+    this.s.paintingChanged(data);
     this.s.bus.emit('saveRequested', { reason: 'painting' });
   }
 

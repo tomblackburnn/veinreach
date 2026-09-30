@@ -56,7 +56,7 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Partially completed
 
-- **Multiplayer:** enemies, bosses, projectiles, drops and liquid flow are client-simulated rather than shared. Online (Firebase) rooms are validated by security rules rather than a server, so a modified client could still cheat.
+- **Multiplayer:** dropped items, townsfolk, world events and liquid flow are per-player; creatures, bosses and projectiles are shared. Online (Firebase) rooms are validated by security rules rather than a server, so a modified client could still cheat.
 - **Chunk streaming:** tile data is resident for the whole map; only render and simulation are chunk-scoped.
 - **Key rebinding** supports one key per action from the UI (defaults have two for movement).
 
@@ -68,6 +68,13 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Terraria-style shared combat.**
+  - Creatures and bosses are simulated by one player's game and mirrored on the others.
+  - Hits count for everyone, and creatures chase and hurt every player.
+  - Boss fights are shared, from phases and hazards to death sequence and per-player loot.
+  - Players see each other's projectiles and swings.
+  - Tested by `tests/multiplayer.test.ts`, which runs two full games through a relay.
+- **Linked worlds.** The host's online worlds also live in their single-player list and stay in sync both ways; offline edits upload the next time they play online.
 - Online sign-in is **Google-only** for now. On the free plan, Firebase won't let the verification email link to our own page, and its default page breaks when some phone mail apps alter the link. The `/auth/action` page is built and deployed for when email comes back (see docs/DEPLOYMENT.md).
 - **Online accounts and world moderation.**
   - Online play now needs an account (Google, or email with verification) and a unique username. Single-player stays account-free.

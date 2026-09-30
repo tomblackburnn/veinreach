@@ -125,12 +125,12 @@ export function multiplayerScreen(host: MenuHost, c: CharacterSave, online: Onli
       fullHint,
     ),
     section('Put one of your worlds online',
-      h('div', { class: 'hint' }, 'Copies a saved world into a new online world with its own code. Your local save is not changed.'),
+      h('div', { class: 'hint' }, 'Turns a saved world into an online world with its own code. The save stays in your single-player list, linked: changes sync both ways.'),
       h('div', { class: 'row' }, worldSel, h('div', { class: 'spacer' }), h('button', { class: 'btn gold', disabled: full, onclick: () => worldSel.value && host.hostWorld(c, worldSel.value) }, 'Host Online')),
     ),
     section('Recently joined', recentBox),
     advanced,
-    h('div', { class: 'hint' }, 'Shared: terrain, building, chests, paintings, time, boss progress and chat (Enter). Creatures and bosses are simulated separately for each player.'),
+    h('div', { class: 'hint' }, 'Shared like Terraria: building, chests, paintings, time, boss progress, chat (Enter), and every creature and boss — hits count for everyone. Worlds you own also appear in your single-player list and stay in sync.'),
     back,
   ));
 }

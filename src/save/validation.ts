@@ -79,6 +79,13 @@ function validateState(raw: unknown): WorldState {
   d.paintings = Array.isArray(raw.paintings) ? raw.paintings.map(sanitizePainting).filter((x): x is PaintingData => !!x) : [];
   d.drops = Array.isArray(raw.drops) ? raw.drops.filter((x): x is { id: string; count: number; x: number; y: number } => isObj(x) && typeof x.id === 'string' && ItemRegistry.has(x.id) && typeof x.count === 'number' && typeof x.x === 'number' && typeof x.y === 'number') : [];
   d.mutationCounter = num(raw.mutationCounter, 0);
+  if (isObj(raw.pendingOnline)) {
+    const po = raw.pendingOnline;
+    const tiles: Record<string, number> = {};
+    if (isObj(po.tiles)) for (const [k, v] of Object.entries(po.tiles)) if (/^\d{1,8}$/.test(k) && typeof v === 'number' && v >= 0 && v < 4294967296) tiles[k] = v;
+    const keys = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length < 40).slice(0, 5000) : []);
+    d.pendingOnline = { tiles, chests: keys(po.chests), paintings: keys(po.paintings), flags: keys(po.flags) };
+  }
   return d;
 }
 
@@ -106,6 +113,7 @@ export function validateWorldRecord(raw: unknown): WorldRecord {
       genVersion: typeof m.genVersion === 'number' ? m.genVersion : 1,
       bossesDefeated: num(m.bossesDefeated, 0, 0, 5),
       unsealed: m.unsealed === true,
+      onlineCode: typeof m.onlineCode === 'string' && /^[A-Z2-9]{6}$/.test(m.onlineCode) ? m.onlineCode : undefined,
     },
     state: validateState(raw.state),
   };

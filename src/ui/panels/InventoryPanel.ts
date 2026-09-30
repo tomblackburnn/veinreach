@@ -229,7 +229,7 @@ export class InventoryPanel {
     nameInput.addEventListener('blur', () => {
       this.s.input.typing = false;
       chest.name = nameInput.value.trim() || undefined;
-      this.s.net?.sendChest(chest);
+      this.s.chestChanged(chest);
     });
     this.chestWrap.append(
       h('div', { class: 'row' }, h('h3', { style: 'margin:0' }, 'Chest'), nameInput),
@@ -248,7 +248,7 @@ export class InventoryPanel {
   private syncChest(): void {
     if (!this.chest || !this.chestContainer) return;
     this.chest.items = this.chestContainer.serialize();
-    this.s.net?.sendChest(this.chest);
+    this.s.chestChanged(this.chest);
   }
 
   /** Called by the network layer when another player edits the open chest. */
@@ -275,7 +275,7 @@ export class InventoryPanel {
       c.load(chest.items);
       moved += p.inventory.main.quickStackInto(c, [10, 50]);
       chest.items = c.serialize();
-      this.s.net?.sendChest(chest);
+      this.s.chestChanged(chest);
     }
     this.s.message(moved ? `Quick-stacked ${moved} items to nearby chests.` : 'Nothing to quick-stack nearby.', '#c0c0c0');
   }

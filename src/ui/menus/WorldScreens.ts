@@ -45,6 +45,7 @@ export function worldSelect(host: MenuHost, c: CharacterSave | null): HTMLElemen
         h('div', { class: 'col', style: 'gap:2px' },
           h('span', { class: 'name' }, w.meta.name),
           h('span', { class: 'muted' }, `${WORLD_SIZES[w.meta.size].label} · seed ${w.meta.seed} · day ${w.state.day} · ${w.meta.bossesDefeated}/5 bosses${w.meta.unsealed ? ' · Unsealed' : ''} · ${ago(w.meta.lastPlayed)}`),
+          w.meta.onlineCode ? h('span', { class: 'online-badge', title: 'Your single-player copy of an online world: friends’ changes sync in when you play it, and your changes upload next time you play it online.' }, `Online · ${w.meta.onlineCode}`) : null,
         ),
         h('div', { class: 'spacer' }),
         h('button', { class: 'btn small good', onclick: (e: Event) => { e.stopPropagation(); play(w); } }, 'Play'),

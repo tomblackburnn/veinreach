@@ -313,3 +313,5 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .account-bar { gap: 8px; flex-wrap: wrap; }
 .google-btn { width: 100%; }
 .auth-action a.btn { text-decoration: none; display: inline-block; }
+
+.online-badge { align-self: flex-start; font-family: var(--font-head); font-size: 10px; letter-spacing: 1px; color: #0e1a26; background: #9fd0ff; padding: 2px 6px; }

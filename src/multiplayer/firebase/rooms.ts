@@ -1,13 +1,16 @@
 import { ref, get, set, update, serverTimestamp } from 'firebase/database';
 import { getFirebase, friendlyError } from './client';
 import { FirebaseTransport } from './FirebaseTransport';
-import { randomRoomCode, encodeTile, encodeLiquid, posKey } from './codec';
+import { randomRoomCode, encodeTile, encodeLiquid, posKey, decodeTile, decodeLiquid, parsePosKey, sanitizeChest } from './codec';
+import { sanitizePainting } from '../../world/paintings';
+import type { RoomSnapshot } from '../linkedWorlds';
 import { NetworkManager, type Connection } from '../NetworkManager';
 import { MAX_OWNED_ROOMS } from './account';
 import { PROTOCOL_VERSION } from '../protocol';
 import { WORLD_SIZES, DAY_TICKS, type WorldSizeKey } from '../../core/config';
 import type { CharacterSave } from '../../save/types';
 import type { ChestData, PaintingData } from '../../world/WorldState';
+import { TileRegistry } from '../../world/TileRegistry';
 import { isPainted } from '../../world/paintings';
 
 /** The signed-in player's username (required for online play). */
@@ -97,3 +100,57 @@ export async function connectRoom(code: string, c: CharacterSave): Promise<Conne
 }
 
 export { rememberRoom } from '../recentRooms';
+
+/**
+ * Read an online world's current contents without joining it as a player
+ * (used to sync the host's single-player copy). Requires membership.
+ */
+export async function fetchRoomSnapshot(code: string): Promise<RoomSnapshot> {
+  const fb = await getFirebase();
+  const base = `rooms/${code}`;
+  const val = async (p: string) => (await get(ref(fb.db, `${base}/${p}`))).val() as unknown;
+  const meta = (await val('meta')) as { size?: WorldSizeKey } | null;
+  if (!meta || !meta.size || !(meta.size in WORLD_SIZES)) throw new Error('That online world no longer exists.');
+  const width = WORLD_SIZES[meta.size].width;
+  const [tilesRaw, liquidsRaw, chestsRaw, paintingsRaw, flagsRaw, timeRaw] = await Promise.all(['tiles', 'liquids', 'chests', 'paintings', 'flags', 'time'].map(val));
+  const tiles: number[] = [];
+  for (const [k, v] of Object.entries((tilesRaw ?? {}) as Record<string, unknown>)) {
+    if (typeof v !== 'number') continue;
+    const [fg, frame, wall] = decodeTile(v);
+    if (!TileRegistry.defs[fg] || wall >= TileRegistry.walls.length) continue;
+    tiles.push(Number(k) % width, Math.floor(Number(k) / width), fg, frame, wall);
+  }
+  const liquids: number[] = [];
+  for (const [k, v] of Object.entries((liquidsRaw ?? {}) as Record<string, unknown>)) {
+    if (typeof v !== 'number') continue;
+    const [amount, type] = decodeLiquid(v);
+    if (type <= 2) liquids.push(Number(k) % width, Math.floor(Number(k) / width), amount, type);
+  }
+  const chests: ChestData[] = [];
+  for (const [k, v] of Object.entries((chestsRaw ?? {}) as Record<string, unknown>)) {
+    const c = sanitizeChest(v);
+    const pos = parsePosKey(k);
+    if (c && pos && c.x === pos[0] && c.y === pos[1]) chests.push(c);
+  }
+  const paintings: PaintingData[] = [];
+  for (const [k, v] of Object.entries((paintingsRaw ?? {}) as Record<string, unknown>)) {
+    const pos = parsePosKey(k);
+    if (!pos || typeof v !== 'string') continue;
+    try {
+      const p = sanitizePainting({ ...(JSON.parse(v) as object), x: pos[0], y: pos[1] });
+      if (p) paintings.push(p);
+    } catch {
+      /* skip */
+    }
+  }
+  const t = timeRaw as { time?: unknown; day?: unknown } | null;
+  return {
+    tiles,
+    liquids,
+    chests,
+    paintings,
+    flags: Object.keys((flagsRaw ?? {}) as object),
+    time: typeof t?.time === 'number' ? t.time : undefined,
+    day: typeof t?.day === 'number' ? t.day : undefined,
+  };
+}

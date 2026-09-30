@@ -15,7 +15,7 @@ import { multiplayerScreen } from '../ui/menus/MultiplayerScreen';
 import { buildSettingsPanel } from '../ui/menus/SettingsScreen';
 import { h } from '../utils/dom';
 import { generateWorld, runSliced } from '../generation/WorldGenerator';
-import { WORLD_SIZES, GEN_VERSION, type WorldSizeKey } from './config';
+import { WORLD_SIZES, GEN_VERSION, SAVE_VERSION, type WorldSizeKey } from './config';
 import { applyChunkRecord, applyExplored, decodeChunkRecord } from '../save/serialization';
 import { BackgroundRenderer } from '../rendering/BackgroundRenderer';
 import { TimeSystem } from '../systems/TimeSystem';
@@ -24,6 +24,9 @@ import { skyLight } from '../lighting/LightingSystem';
 import type { BiomeKey } from '../data/biomes';
 import { NetworkManager, type Connection } from '../multiplayer/NetworkManager';
 import { diffSavedWorld, replayUnsealing } from '../multiplayer/worldDiff';
+import { applyRoomSnapshot } from '../multiplayer/linkedWorlds';
+import { uid } from '../utils/dom';
+import type { World } from '../world/World';
 import { TileRegistry } from '../world/TileRegistry';
 import { defaultWorldState } from '../world/WorldState';
 import { applyRemotePainting } from '../world/paintings';
@@ -169,11 +172,14 @@ export class Game implements MenuHost {
         signOut: act(() => acc.signOut()),
         deleteAccount: act(async () => {
           if (!(await this.ui.confirm('Delete account', 'This permanently deletes your account, your username and every online world you own (for all their members). Your single-player characters and worlds are not affected.', true))) return;
+          const owned = await acc.ownedRooms();
           await acc.deleteAccount();
+          for (const w of owned) await this.unlinkCopy(w.code);
         }),
         deleteWorld: (w) => void act(async () => {
           if (!(await this.ui.confirm('Delete online world', `Permanently delete “${w.name}” (${w.code}) for everyone? This can’t be undone.`, true))) return;
           await acc.deleteOwnedRoom(w);
+          await this.unlinkCopy(w.code);
         })(),
       }));
     } catch (err) {
@@ -187,6 +193,7 @@ export class Game implements MenuHost {
     this.busy = true;
     const loading = loadingScreen();
     this.ui.show(loading.el);
+    let syncNote: string | null = null;
     try {
       const { width, height } = WORLD_SIZES[record.meta.size];
       const gen = await runSliced(generateWorld({ name: record.meta.name, seed: record.meta.seed, width, height }), (p) => loading.set(p.stage, p.progress));
@@ -207,6 +214,7 @@ export class Game implements MenuHost {
         for (const ex of data.explored) applyExplored(world, ex);
         if (bad) console.warn(`[Game] ${bad} saved chunks were invalid and skipped`);
         world.recomputeSkyTop();
+        if (record.meta.onlineCode) syncNote = await this.pullOnlineChanges(record, world, loading);
         if (!record.state.spawnX) {
           record.state.spawnX = gen.spawnX;
           record.state.spawnY = gen.spawnY;
@@ -214,6 +222,7 @@ export class Game implements MenuHost {
       }
       this.ui.clearAll();
       this.session = new GameSession({ host: this, world, record, character: c });
+      if (syncNote) this.session.message(syncNote, '#9fd0ff');
       if (isNew) void this.session.save('new');
       else if ((record.meta.genVersion ?? 1) !== GEN_VERSION) {
         this.session.message('This world was created by an older world generator; untouched areas may look different.', '#ffb070');
@@ -225,6 +234,44 @@ export class Game implements MenuHost {
     } finally {
       this.busy = false;
     }
+  }
+
+  /**
+   * Single-player copy of an online world: bring in what others changed online
+   * (the host's own offline edits are kept). Returns a note for the player.
+   */
+  private async pullOnlineChanges(record: WorldRecord, world: World, loading: ReturnType<typeof loadingScreen>): Promise<string> {
+    const code = record.meta.onlineCode!;
+    loading.set(`Syncing with online world ${code}...`, 0.99);
+    try {
+      const rooms = await import('../multiplayer/firebase/rooms');
+      const snap = await Promise.race([
+        rooms.fetchRoomSnapshot(code),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timed out')), 12000)),
+      ]);
+      const n = applyRoomSnapshot(world, record.state, snap);
+      return n ? `Synced with online world ${code}: ${n} tile${n === 1 ? '' : 's'} changed by other players.` : `Synced with online world ${code}.`;
+    } catch (err) {
+      return `Couldn’t reach online world ${code} (${(err as Error).message}). Playing your saved copy; your changes will upload next time you play it online.`;
+    }
+  }
+
+  /** The host's single-player copy of an online world, if this browser has one. */
+  private async linkedCopy(code: string): Promise<WorldRecord | null> {
+    try {
+      return (await this.saves.listWorlds()).find((w) => w.meta.onlineCode === code) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** An online world was deleted: its single-player copy becomes an ordinary world again. */
+  async unlinkCopy(code: string): Promise<void> {
+    const rec = await this.linkedCopy(code);
+    if (!rec) return;
+    rec.meta.onlineCode = undefined;
+    rec.state.pendingOnline = undefined;
+    await this.saves.saveWorldRecord(rec);
   }
 
   /** Join a self-hosted Node server. */
@@ -251,7 +298,16 @@ export class Game implements MenuHost {
     let code: string;
     try {
       const rooms = await import('../multiplayer/firebase/rooms');
-      code = await rooms.createRoom(name, seed || String(Math.floor(Math.random() * 1e9)), size);
+      const worldSeed = seed || String(Math.floor(Math.random() * 1e9));
+      code = await rooms.createRoom(name, worldSeed, size);
+      // The host also gets it in their single-player world list, linked to the online world.
+      const id = uid();
+      const dims = WORLD_SIZES[size];
+      await this.saves.saveWorldRecord({
+        id,
+        meta: { id, name: name || 'Online World', seed: worldSeed, size, width: dims.width, height: dims.height, createdAt: Date.now(), lastPlayed: Date.now(), version: SAVE_VERSION, genVersion: GEN_VERSION, bossesDefeated: 0, unsealed: false, onlineCode: code },
+        state: defaultWorldState(),
+      });
     } catch (err) {
       await this.ui.alert('Online world', (err as Error).message);
       this.showMultiplayer(c);
@@ -277,6 +333,10 @@ export class Game implements MenuHost {
       code = await rooms.createRoom(m.name, m.seed, m.size);
       const st = data.record.state;
       await rooms.uploadWorld(code, m.size, { ...diff, chests: st.chests, paintings: st.paintings, flags: st.flags, time: st.time, day: st.day }, (p) => loading.set(`Uploading ${diff.tiles.length / 5} changed tiles...`, 0.62 + p * 0.38));
+      // This save now is the host's single-player copy of the online world.
+      data.record.meta.onlineCode = code;
+      data.record.state.pendingOnline = undefined;
+      await this.saves.saveWorldRecord(data.record);
     } catch (err) {
       console.error('[Game] hosting failed', err);
       await this.ui.alert('Host online', (err as Error).message);
@@ -337,6 +397,10 @@ export class Game implements MenuHost {
         if (t[i + 2] === chestId && t[i + 3] === 0 && !world.chests.has(world.chestKey(t[i], t[i + 1]))) world.chests.set(world.chestKey(t[i], t[i + 1]), { x: t[i], y: t[i + 1], items: new Array(40).fill(null) });
       }
       for (const pt of welcome.paintings ?? []) applyRemotePainting(world, pt);
+      // Chunks with online edits count as modified (the host's copy saves them).
+      for (let i = 0; i + 4 < t.length; i += 5) world.markModified(t[i], t[i + 1]);
+      for (let i = 0; i + 3 < lq.length; i += 4) world.markModified(lq[i], lq[i + 1]);
+      const linked = roomCode ? await this.linkedCopy(roomCode) : null;
       const state = defaultWorldState();
       state.time = welcome.time;
       state.day = welcome.day;
@@ -346,6 +410,12 @@ export class Game implements MenuHost {
       state.structures = gen.structures;
       state.chests = [...world.chests.values()];
       state.paintings = [...world.paintings.values()];
+      if (linked) {
+        // The host's townsfolk, beds and last position come from their copy.
+        state.npcs = linked.state.npcs;
+        state.playerSpawns = linked.state.playerSpawns;
+        state.playerPositions = linked.state.playerPositions;
+      }
       const record: WorldRecord = {
         id,
         meta: { id, name: welcome.world.name, seed: welcome.world.seed, size, width, height, createdAt: Date.now(), lastPlayed: Date.now(), version: 1, bossesDefeated: 0, unsealed: welcome.flags.includes('unsealed') },
@@ -353,7 +423,7 @@ export class Game implements MenuHost {
       };
       net.initialPlayers = players;
       this.ui.clearAll();
-      this.session = new GameSession({ host: this, world, record, character: c, net });
+      this.session = new GameSession({ host: this, world, record, character: c, net, linked });
       if (roomCode) this.session.message(`Online world code: ${roomCode} — share it so friends can join.`, '#9fd0ff');
       net = null;
     } catch (err) {

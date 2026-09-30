@@ -239,6 +239,14 @@ export class World {
     return this.paintings.get(this.chestKey(ox, oy));
   }
 
+  /** Flag a tile's chunk as changed from the generated world (so it is saved), without firing listeners. */
+  markModified(x: number, y: number): void {
+    const c = this.chunkAt(x, y);
+    if (!c) return;
+    c.modified = true;
+    c.saveDirty = true;
+  }
+
   /** Force a redraw of a rectangle of tiles without counting it as a world edit. */
   invalidateRender(x: number, y: number, w = 1, h = 1): void {
     for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) this.markRenderDirty(xx, yy);

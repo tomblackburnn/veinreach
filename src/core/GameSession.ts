@@ -54,7 +54,9 @@ import { ObjectSprites } from '../rendering/sprites/objectSprites';
 import { TileTextures } from '../rendering/sprites/tileTextures';
 import type { NetworkManager } from '../multiplayer/NetworkManager';
 import type { NPC } from '../entities/npcs/NPC';
-import type { ChestData } from '../world/WorldState';
+import type { ChestData, PaintingData } from '../world/WorldState';
+import { trackOfflineEdits, markPending, pendingTiles, pendingCount } from '../multiplayer/linkedWorlds';
+import { applyRemotePainting } from '../world/paintings';
 
 /** Pentatonic pitch multipliers for wind chimes. */
 const CHIME_NOTES = [1, 9 / 8, 5 / 4, 3 / 2, 5 / 3, 2];
@@ -65,6 +67,8 @@ export interface SessionInit {
   record: WorldRecord;
   character: CharacterSave;
   net?: NetworkManager | null;
+  /** Online sessions: the host's linked single-player copy of this world (kept in sync). */
+  linked?: WorldRecord | null;
 }
 
 /**
@@ -118,6 +122,9 @@ export class GameSession implements GameContext {
   private comfortRoom: number | null = null;
   private comfortTierKey = 'bare';
   private planterId = TileRegistry.id('planter');
+  /** Online: the host's single-player copy of this world, saved alongside. */
+  private linkedLocal: WorldRecord | null = null;
+  private linkedSaved = false;
   private disposed = false;
   private unsubscribers: (() => void)[] = [];
   showChunks = false;
@@ -220,9 +227,79 @@ export class GameSession implements GameContext {
     // Resume an interrupted Unsealing.
     if (this.progression.has(FLAGS.unsealed) && !this.progression.has('unseal:done')) this.unsealGen = unsealWorld(this, this.record.meta.seed);
     this.net?.attach(this);
+    // Linked worlds: record single-player edits for upload, or upload them now that we're online.
+    if (!this.net && this.record.meta.onlineCode) this.unsubscribers.push(trackOfflineEdits(this.world, this.record.state, this.bus));
+    if (this.net && init.linked) {
+      this.linkedLocal = init.linked;
+      this.uploadOfflineEdits();
+    }
     this.applySettings();
     this.message(`Welcome to ${this.record.meta.name}, ${this.player.name}.`, '#ffe8a0');
     if (!this.host.saves.persistent) this.message('Warning: browser storage is unavailable — progress will not be saved.', '#ff8a8a');
+  }
+
+  /** A chest's contents changed: share it online, or remember it for upload (linked worlds). */
+  chestChanged(c: ChestData): void {
+    this.net?.sendChest(c);
+    if (!this.net && this.record.meta.onlineCode) markPending(this.record.state, 'chests', this.world.chestKey(c.x, c.y));
+  }
+
+  paintingChanged(p: PaintingData): void {
+    this.net?.sendPainting(p);
+    if (!this.net && this.record.meta.onlineCode) markPending(this.record.state, 'paintings', this.world.chestKey(p.x, p.y));
+  }
+
+  /** Push what the host changed while playing this world in single-player to everyone online. */
+  private uploadOfflineEdits(): void {
+    const local = this.linkedLocal!;
+    const pend = local.state.pendingOnline;
+    const n = pendingCount(pend);
+    if (!pend || !n) return;
+    const w = this.world;
+    // Tile edits are picked up by the network capture like any other edit.
+    for (const [x, y, fg, frame, wall] of pendingTiles(pend, w.width)) {
+      if (!w.inBounds(x, y)) continue;
+      w.setFg(x, y, fg, frame);
+      w.setWall(x, y, wall);
+    }
+    for (const k of pend.chests) {
+      const c = local.state.chests.find((ch) => w.chestKey(ch.x, ch.y) === k);
+      if (c && w.getFg(c.x, c.y) === T.chest) {
+        w.chests.set(k, c);
+        this.net?.sendChest(c);
+      }
+    }
+    for (const k of pend.paintings) {
+      const p = local.state.paintings.find((pt) => w.chestKey(pt.x, pt.y) === k);
+      if (p && applyRemotePainting(w, p)) this.net?.sendPainting(p);
+    }
+    for (const f of pend.flags) this.progression.set(f);
+    local.state.pendingOnline = undefined;
+    void this.host.saves.saveWorldRecord(local).catch((e) => console.warn('[Session] could not save linked copy', e));
+    this.message(`Uploaded ${n} change${n === 1 ? '' : 's'} you made in single-player.`, '#9fd0ff');
+  }
+
+  /** Online as the host: keep the single-player copy identical to the online world. */
+  private async saveLinkedCopy(): Promise<void> {
+    const L = this.linkedLocal;
+    if (!L) return;
+    const st = this.record.state;
+    const ls = L.state;
+    ls.time = this.time.time;
+    ls.day = this.time.day;
+    ls.flags = [...this.progression.flags];
+    ls.bossKills = { ...this.progression.bossKills };
+    ls.npcs = this.npcs.serialize();
+    ls.structures = this.world.structures;
+    ls.chests = [...this.world.chests.values()];
+    ls.paintings = [...this.world.paintings.values()];
+    ls.playerPositions = st.playerPositions;
+    ls.playerSpawns = st.playerSpawns;
+    L.meta.lastPlayed = Date.now();
+    L.meta.bossesDefeated = this.progression.bossesDefeated();
+    L.meta.unsealed = this.progression.has(FLAGS.unsealed);
+    await this.host.saves.saveWorld(L, this.world, !this.linkedSaved);
+    this.linkedSaved = true;
   }
 
   applySettings(): void {
@@ -588,6 +665,7 @@ export class GameSession implements GameContext {
       this.record.meta.bossesDefeated = this.progression.bossesDefeated();
       this.record.meta.unsealed = this.progression.has(FLAGS.unsealed);
       if (!this.online) await this.host.saves.saveWorld(this.record, this.world);
+      else await this.saveLinkedCopy();
       if (reason === 'manual' || reason === 'autosave') this.hud.saveIndicator(reason === 'manual' ? 'Game saved.' : 'Autosaved');
       return true;
     } catch (err) {

@@ -60,6 +60,21 @@ export interface WorldMeta {
   /** Summary for the world list. */
   bossesDefeated: number;
   unsealed: boolean;
+  /** Linked online world (room code): this save is the host's single-player copy of it. */
+  onlineCode?: string;
+}
+
+/**
+ * Edits made while playing a linked world in single-player, uploaded to the
+ * online world the next time the host plays it online.
+ */
+export interface PendingOnline {
+  /** Tile index (y * width + x) → encoded tile (fg + frame·2¹⁶ + wall·2²⁴). */
+  tiles: Record<string, number>;
+  /** Chest / painting keys ("x,y") and flags changed offline. */
+  chests: string[];
+  paintings: string[];
+  flags: string[];
 }
 
 /** All mutable non-tile world state that is persisted. */
@@ -81,6 +96,8 @@ export interface WorldState {
   drops: { id: string; count: number; x: number; y: number }[];
   /** Deterministic counter so post-generation world changes can be seeded. */
   mutationCounter: number;
+  /** Linked worlds only: offline edits waiting to be uploaded. */
+  pendingOnline?: PendingOnline;
 }
 
 export function defaultWorldState(): WorldState {

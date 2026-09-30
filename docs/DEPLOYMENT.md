@@ -69,6 +69,8 @@ Rooms are stored under `rooms/<CODE>/`:
 | `chests/<x_y>`, `paintings/<x_y>` | JSON strings |
 | `players/<uid>` | `{ name, info, s }`: username; appearance; position and animation. Removed on disconnect. |
 | `chat/<pushId>` | `{ uid, name, text, t }` |
+| `mobs/<tag>` | JSON snapshot of the creatures one player's game simulates (overwritten ~10×/s; removed on disconnect) |
+| `ev/<pushId>` | `{ f: tag, t, e }`: a batch of hits, deaths and projectiles, deleted by its sender after 15 s |
 
 Outside rooms, there are two more paths:
 - `usernames/<lowercase name>` maps a username to its account.
@@ -82,6 +84,22 @@ Joining a room works like this:
 3. Apply the stored tiles, liquids, chests and paintings.
 
 "Put one of your worlds online" uploads only the tiles that differ from a fresh generation of the same seed.
+
+## Shared creatures
+
+`src/multiplayer/MobSync.ts` runs on every client, for both the Firebase and Node backends:
+- **Ownership:** each creature belongs to the game that spawned it. Owners publish snapshots of creatures near other players; bosses are always published.
+- **Mirrors:** other games show "puppets" that interpolate, run contact, hazard and boss-specific collisions against their own player, and forward hits to the owner. The owner applies the exact rolled damage (`ignoreDefense`), so everyone sees the same health.
+- **Deaths:** the owner sends each death with the killer's tag. The killer's game rolls normal loot; every game whose player took part (dealt damage, or was within 150 tiles) rolls boss loot and records the kill.
+- **Projectiles:** mirrored as events. Players' shots are harmless "ghosts" on other screens (their owner deals the damage); creature shots are real everywhere.
+
+## Linked single-player copies
+
+`meta.onlineCode` marks a local save as the host's copy of an online world (`src/multiplayer/linkedWorlds.ts`):
+- **Online:** the session also saves into the copy (all modified chunks, chests, paintings, flags, townsfolk).
+- **Single-player:** edits are recorded in `state.pendingOnline`. Before playing, the copy pulls the room (`fetchRoomSnapshot`); tiles, chests and paintings the host changed offline win.
+- **Back online:** pending edits are applied to the online session, which sends them to everyone.
+- **Deleting** the online world unlinks the copy.
 
 ## Security rules (`database.rules.json`)
 
