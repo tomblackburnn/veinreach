@@ -139,8 +139,46 @@ export class Game implements MenuHost {
   showCredits(): void {
     this.ui.show(creditsScreen(this));
   }
-  showMultiplayer(c: CharacterSave): void {
-    this.ui.show(multiplayerScreen(this, c));
+  /** Online play needs a signed-in, verified account with a username; otherwise show the sign-in screen. */
+  async showMultiplayer(c: CharacterSave): Promise<void> {
+    const loading = loadingScreen();
+    this.ui.show(loading.el);
+    loading.set('Connecting to online services...', 0.3);
+    try {
+      const acc = await import('../multiplayer/firebase/account');
+      const st = await acc.accountState();
+      if (!st.signedIn || !st.verified || !st.username) {
+        const { accountScreen } = await import('../ui/menus/AccountScreen');
+        this.ui.show(accountScreen(this, c, st));
+        return;
+      }
+      const owned = await acc.ownedRooms();
+      const act = (fn: () => Promise<unknown>) => async () => {
+        try {
+          await fn();
+        } catch (err) {
+          await this.ui.alert('Multiplayer', (err as Error).message);
+        }
+        void this.showMultiplayer(c);
+      };
+      this.ui.show(multiplayerScreen(this, c, {
+        username: st.username,
+        email: st.email,
+        owned,
+        maxOwned: acc.MAX_OWNED_ROOMS,
+        signOut: act(() => acc.signOut()),
+        deleteAccount: act(async () => {
+          if (!(await this.ui.confirm('Delete account', 'This permanently deletes your account, your username and every online world you own (for all their members). Your single-player characters and worlds are not affected.', true))) return;
+          await acc.deleteAccount();
+        }),
+        deleteWorld: (w) => void act(async () => {
+          if (!(await this.ui.confirm('Delete online world', `Permanently delete “${w.name}” (${w.code}) for everyone? This can’t be undone.`, true))) return;
+          await acc.deleteOwnedRoom(w);
+        })(),
+      }));
+    } catch (err) {
+      this.ui.show(multiplayerScreen(this, c, null, `Online play is unavailable: ${(err as Error).message}`));
+    }
   }
 
   // ---------------- Starting a world ----------------

@@ -40,8 +40,10 @@ export class NetworkManager {
   private bind(): void {
     this.transport.onMessage = (m) => this.queue.push(m);
     this.transport.onClose = (reason) => {
-      if (this.connected) this.session?.message(reason, '#ff6a6a');
+      if (!this.connected) return;
       this.connected = false;
+      // Kicked, banned or the connection is gone for good: back to the menu with the reason.
+      this.session?.onDisconnected(reason);
     };
   }
 

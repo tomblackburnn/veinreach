@@ -594,6 +594,12 @@ export class GameSession implements GameContext {
     }
   }
 
+  /** The multiplayer connection ended (kicked, banned or lost): save the character and return to the menu. */
+  onDisconnected(reason: string): void {
+    if (this.disposed) return;
+    void this.exit().then(() => this.host.ui.alert('Multiplayer', reason));
+  }
+
   async exit(): Promise<void> {
     await this.save('exit');
     this.dispose();

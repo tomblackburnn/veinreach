@@ -1,28 +1,46 @@
-import { ref, set, update, serverTimestamp } from 'firebase/database';
+import { ref, get, set, update, serverTimestamp } from 'firebase/database';
 import { getFirebase, friendlyError } from './client';
-import { FirebaseTransport, type RoomMeta } from './FirebaseTransport';
+import { FirebaseTransport } from './FirebaseTransport';
 import { randomRoomCode, encodeTile, encodeLiquid, posKey } from './codec';
 import { NetworkManager, type Connection } from '../NetworkManager';
+import { MAX_OWNED_ROOMS } from './account';
 import { PROTOCOL_VERSION } from '../protocol';
 import { WORLD_SIZES, DAY_TICKS, type WorldSizeKey } from '../../core/config';
 import type { CharacterSave } from '../../save/types';
 import type { ChestData, PaintingData } from '../../world/WorldState';
 import { isPainted } from '../../world/paintings';
 
-/** Create a new online world and return its room code. */
-export async function createRoom(name: string, seed: string, size: WorldSizeKey): Promise<string> {
+/** The signed-in player's username (required for online play). */
+async function requireUsername(): Promise<{ fb: Awaited<ReturnType<typeof getFirebase>>; username: string }> {
   const fb = await getFirebase();
-  const meta: RoomMeta & { created: object } = { name: name.slice(0, 32) || 'Online World', seed: seed.slice(0, 64), size: size in WORLD_SIZES ? size : 'medium', v: PROTOCOL_VERSION, owner: fb.uid, created: serverTimestamp() };
+  const name = (await get(ref(fb.db, `users/${fb.uid}/name`))).val();
+  if (typeof name !== 'string') throw new Error('Please choose a username first.');
+  return { fb, username: name };
+}
+
+/** Create a new online world owned by this account (max 5) and return its room code. */
+export async function createRoom(name: string, seed: string, size: WorldSizeKey): Promise<string> {
+  const { fb, username } = await requireUsername();
+  const owned = ((await get(ref(fb.db, `users/${fb.uid}/rooms`))).val() ?? {}) as Record<string, string>;
+  const slot = ['1', '2', '3', '4', '5'].find((s) => !owned[s]);
+  if (!slot) throw new Error(`You already own ${MAX_OWNED_ROOMS} online worlds. Delete one from the Multiplayer menu to make room.`);
+  const meta = { name: name.slice(0, 32) || 'Online World', seed: seed.slice(0, 64), size: size in WORLD_SIZES ? size : 'medium', v: PROTOCOL_VERSION, owner: fb.uid, created: serverTimestamp(), slot };
   // Codes are random; the rules only allow creating a room that doesn't exist yet, so retry on a clash.
   for (let attempt = 0; attempt < 6; attempt++) {
     const code = randomRoomCode();
     try {
-      await set(ref(fb.db, `rooms/${code}/meta`), meta);
-      await set(ref(fb.db, `rooms/${code}/time`), { time: Math.floor(DAY_TICKS * (7.5 / 24)), day: 1 });
-      return code;
+      await update(ref(fb.db), { [`rooms/${code}/meta`]: meta, [`users/${fb.uid}/rooms/${slot}`]: code });
     } catch (e) {
       if (attempt === 5) throw new Error(friendlyError(e));
+      continue;
     }
+    try {
+      await set(ref(fb.db, `rooms/${code}/members/${fb.uid}`), { name: username, joined: serverTimestamp() });
+      await set(ref(fb.db, `rooms/${code}/time`), { time: Math.floor(DAY_TICKS * (7.5 / 24)), day: 1 });
+    } catch (e) {
+      throw new Error(friendlyError(e));
+    }
+    return code;
   }
   throw new Error('Could not create an online world.');
 }
@@ -73,8 +91,8 @@ export async function uploadWorld(code: string, size: WorldSizeKey, data: WorldU
 
 /** Join an online world by code. */
 export async function connectRoom(code: string, c: CharacterSave): Promise<Connection> {
-  const fb = await getFirebase();
-  const t = new FirebaseTransport(fb, code);
+  const { fb, username } = await requireUsername();
+  const t = new FirebaseTransport(fb, code, username);
   return NetworkManager.connectWith(t, c, 30000, 'Timed out joining the online world. Check your connection and try again.');
 }
 

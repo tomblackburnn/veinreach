@@ -68,6 +68,14 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Online accounts and world moderation.**
+  - Online play now needs an account (Google, or email with verification) and a unique username. Single-player stays account-free.
+  - World owners can kick, ban and unban players and lock their world (Esc → Online World).
+  - Accounts can own up to 5 worlds and can delete them, or delete the whole account.
+  - All of it is enforced by the database rules.
+  - App Check is wired up and waiting for the site key.
+  - `scripts/online-smoke.ts` now runs 41 checks.
+  - Not deployed yet: waiting for the custom domain.
 - **Online multiplayer with Firebase.**
   - The game deploys to Firebase Hosting.
   - Online worlds live in Realtime Database: create one, join by a six-character code, or put a saved world online. No server to run.

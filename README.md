@@ -196,12 +196,13 @@ Creatures, bosses, projectiles, dropped items and liquid flow are still simulate
 
 ### Online worlds (Firebase) — the default
 
-Open **Multiplayer** from the main menu:
-- **Create & Play** makes a new online world with a six-character code (for example `K7QM2X`). Share the code; anyone with it can join, even when you're offline. Worlds are stored in Firebase Realtime Database.
-- **Join a friend** joins a world by its code. Recent worlds are listed for one-click rejoin.
+Open **Multiplayer** from the main menu and sign in with Google, or with email and password. Email accounts verify with a link, and every account picks a unique username. Single-player never needs an account.
+- **Create & Play** makes a new online world with a six-character code (for example `K7QM2X`). Share the code; members can play any time, even when you're offline. Each account can own up to 5 worlds.
+- **Join a friend** joins a world by its code. Your own and recently joined worlds are listed for one-click play.
 - **Put one of your worlds online** copies a saved single-player world into a new online world. Your local save is not changed.
+- **Owners** open **Esc → Online World** to see who's playing, **kick** or **ban** players, and **lock** the world so nobody new can join.
 
-Each browser tab signs in anonymously and invisibly, so two tabs are two players. The database security rules only allow signed-in players to write well-formed data to rooms that exist. They also stop anyone rewriting a room's settings, impersonating another player's avatar or chat, or listing other people's rooms. They can't check game logic the way the Node server does (for example, how far an edit is from the player), so treat room codes like a private invite. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for hosting, the emulators and the rules.
+The Firebase security rules enforce all of this: only members can read or change a world, bans and locks can't be bypassed, and nobody can impersonate another player's name or chat. App Check is ready to switch on once the site has its domain. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for going live, the emulators and the full rules.
 
 ### Self-hosted server (advanced)
 

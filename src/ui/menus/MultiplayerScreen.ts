@@ -4,6 +4,17 @@ import type { CharacterSave } from '../../save/types';
 import { WORLD_SIZES, type WorldSizeKey } from '../../core/config';
 import { recentRooms, forgetRoom } from '../../multiplayer/recentRooms';
 
+/** The signed-in account's view of online play (null = not signed in: self-hosted only). */
+export interface OnlineMenu {
+  username: string;
+  email: string | null;
+  owned: { slot: string; code: string; name: string }[];
+  maxOwned: number;
+  signOut(): void;
+  deleteAccount(): void;
+  deleteWorld(w: { slot: string; code: string; name: string }): void;
+}
+
 const CODE_RE = /^[A-Z2-9]{6}$/;
 const normalize = (s: string) => s.toUpperCase().replace(/[\s-]/g, '');
 
@@ -11,7 +22,7 @@ const normalize = (s: string) => s.toUpperCase().replace(/[\s-]/g, '');
  * Multiplayer menu. Online worlds live in Firebase and are shared with a
  * six-character code; a self-hosted Node server is still available.
  */
-export function multiplayerScreen(host: MenuHost, c: CharacterSave): HTMLElement {
+export function multiplayerScreen(host: MenuHost, c: CharacterSave, online: OnlineMenu | null, offlineReason?: string): HTMLElement {
   const typing = (el: HTMLInputElement) => {
     el.addEventListener('focus', () => (host.input.typing = true));
     el.addEventListener('blur', () => (host.input.typing = false));
@@ -51,7 +62,8 @@ export function multiplayerScreen(host: MenuHost, c: CharacterSave): HTMLElement
   const recentBox = h('div', { class: 'col', style: 'gap:6px' });
   const renderRecent = () => {
     clear(recentBox);
-    const list = recentRooms();
+    const owned = new Set(online?.owned.map((o) => o.code));
+    const list = recentRooms().filter((r) => !owned.has(r.code));
     if (!list.length) recentBox.append(h('div', { class: 'hint' }, 'Worlds you join will appear here.'));
     for (const r of list) {
       recentBox.append(h('div', { class: 'row' },
@@ -73,22 +85,52 @@ export function multiplayerScreen(host: MenuHost, c: CharacterSave): HTMLElement
     h('div', { class: 'row' }, url, h('button', { class: 'btn', onclick: () => { host.settings.multiplayerUrl = url.value.trim(); host.saveSettings(); host.joinServer(c, url.value.trim()); } }, 'Connect')),
   );
 
-  const section = (title: string, ...body: (HTMLElement | string)[]) => h('div', { class: 'mp-section' }, h('h3', {}, title), ...body);
+  const section = (title: string, ...body: (HTMLElement | string | null)[]) => h('div', { class: 'mp-section' }, h('h3', {}, title), ...body);
+  const back = h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => host.showCharacters('multiplayer') }, 'Back'));
+  if (!online) {
+    advanced.open = true;
+    return h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel' },
+      h('h2', {}, 'Multiplayer'),
+      h('div', { class: 'dialog-text' }, offlineReason ?? 'Online play is unavailable right now.'),
+      h('div', { class: 'row' }, h('button', { class: 'btn good', onclick: () => host.showMultiplayer(c) }, 'Sign in for online worlds')),
+      advanced,
+      back,
+    ));
+  }
+  const full = online.owned.length >= online.maxOwned;
+  const ownedBox = h('div', { class: 'col', style: 'gap:6px' },
+    ...(online.owned.length ? online.owned.map((w) => h('div', { class: 'row' },
+      h('b', { style: 'letter-spacing:2px;min-width:90px' }, w.code),
+      h('span', {}, w.name),
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn small danger', onclick: () => online.deleteWorld(w) }, 'Delete'),
+      h('button', { class: 'btn small good', onclick: () => host.joinRoom(c, w.code) }, 'Play'),
+    )) : [h('div', { class: 'hint' }, 'You don’t own any online worlds yet.')]),
+  );
+  const fullHint = full ? h('div', { class: 'hint' }, `You own ${online.maxOwned} worlds, the most allowed. Delete one to create or upload another.`) : null;
   return h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel' },
     h('h2', {}, 'Multiplayer'),
-    h('div', { class: 'dialog-text' }, `Playing as ${c.name}. Online worlds are saved in the cloud; anyone with the code can join, even when you're offline.`),
+    h('div', { class: 'row account-bar' },
+      h('span', {}, 'Signed in as ', h('b', {}, online.username), online.email ? h('span', { class: 'muted' }, ` (${online.email})`) : null),
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn small', onclick: () => online.signOut() }, 'Sign out'),
+      h('button', { class: 'btn small danger', onclick: () => online.deleteAccount() }, 'Delete account'),
+    ),
+    h('div', { class: 'dialog-text' }, `Playing as ${c.name}. Online worlds are saved in the cloud; members can play any time, even when you're offline. Owners can kick, ban and lock their worlds (Esc → Online World).`),
     section('Join a friend', h('div', { class: 'row' }, code, h('button', { class: 'btn good', onclick: join }, 'Join')), joinErr),
+    section(`Your online worlds (${online.owned.length}/${online.maxOwned})`, ownedBox),
     section('Create an online world',
       h('div', { class: 'form-grid' }, h('span', {}, 'Name'), name, h('span', {}, 'Seed'), seed, h('span', {}, 'Size'), sizeRow),
-      h('div', { class: 'row' }, h('div', { class: 'spacer' }), h('button', { class: 'btn gold', onclick: () => host.createRoom(c, name.value.trim(), seed.value.trim(), size) }, 'Create & Play')),
+      h('div', { class: 'row' }, h('div', { class: 'spacer' }), h('button', { class: 'btn gold', disabled: full, onclick: () => host.createRoom(c, name.value.trim(), seed.value.trim(), size) }, 'Create & Play')),
+      fullHint,
     ),
     section('Put one of your worlds online',
       h('div', { class: 'hint' }, 'Copies a saved world into a new online world with its own code. Your local save is not changed.'),
-      h('div', { class: 'row' }, worldSel, h('div', { class: 'spacer' }), h('button', { class: 'btn gold', onclick: () => worldSel.value && host.hostWorld(c, worldSel.value) }, 'Host Online')),
+      h('div', { class: 'row' }, worldSel, h('div', { class: 'spacer' }), h('button', { class: 'btn gold', disabled: full, onclick: () => worldSel.value && host.hostWorld(c, worldSel.value) }, 'Host Online')),
     ),
-    section('Recent online worlds', recentBox),
+    section('Recently joined', recentBox),
     advanced,
     h('div', { class: 'hint' }, 'Shared: terrain, building, chests, paintings, time, boss progress and chat (Enter). Creatures and bosses are simulated separately for each player.'),
-    h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => host.showCharacters('multiplayer') }, 'Back')),
+    back,
   ));
 }

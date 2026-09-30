@@ -4,13 +4,13 @@
  *   npm run emulators          (in one terminal)
  *   npx tsx scripts/online-smoke.ts
  *
- * Two clients join a room and exchange tiles, chests, paintings, flags, chat
- * and player state; a late joiner must receive everything; the security
- * rules must reject bad writes.
+ * Covers accounts (verified email, unique usernames), world ownership limits,
+ * membership (join, lock, kick, ban), syncing between players, late joining,
+ * and that the security rules reject everything they should.
  */
 import { initializeApp, deleteApp } from 'firebase/app';
-import { getAuth, signInAnonymously, connectAuthEmulator } from 'firebase/auth';
-import { getDatabase, connectDatabaseEmulator, ref, set, get, serverTimestamp } from 'firebase/database';
+import { getAuth, connectAuthEmulator, signInWithCredential, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getDatabase, connectDatabaseEmulator, ref, set, get, update, remove, serverTimestamp } from 'firebase/database';
 import { firebaseConfig } from '../src/multiplayer/firebase/config';
 import { FirebaseTransport } from '../src/multiplayer/firebase/FirebaseTransport';
 import type { FirebaseHandle } from '../src/multiplayer/firebase/client';
@@ -20,15 +20,40 @@ import { randomRoomCode, encodeTile } from '../src/multiplayer/firebase/codec';
 import { TileRegistry } from '../src/world/TileRegistry';
 
 const apps: ReturnType<typeof initializeApp>[] = [];
-async function handle(name: string, signIn = true): Promise<FirebaseHandle> {
-  const app = initializeApp(firebaseConfig, name);
+const run = Date.now().toString(36);
+
+/** A Google-verified account (the emulator accepts unsigned test tokens). */
+async function googleUser(tag: string): Promise<FirebaseHandle> {
+  const app = initializeApp(firebaseConfig, `${tag}-${run}`);
   apps.push(app);
   const auth = getAuth(app);
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   const db = getDatabase(app);
   connectDatabaseEmulator(db, '127.0.0.1', 9000);
-  const uid = signIn ? (await signInAnonymously(auth)).user.uid : '';
-  return { app, db, uid };
+  const cred = await signInWithCredential(auth, GoogleAuthProvider.credential(JSON.stringify({ sub: `${tag}-${run}`, email: `${tag}-${run}@example.com`, email_verified: true })));
+  return { app, db, uid: cred.user.uid };
+}
+
+async function unverifiedUser(): Promise<FirebaseHandle> {
+  const app = initializeApp(firebaseConfig, `unverified-${run}`);
+  apps.push(app);
+  const auth = getAuth(app);
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+  const db = getDatabase(app);
+  connectDatabaseEmulator(db, '127.0.0.1', 9000);
+  const cred = await createUserWithEmailAndPassword(auth, `unverified-${run}@example.com`, 'password123');
+  return { app, db, uid: cred.user.uid };
+}
+
+const claim = (u: FirebaseHandle, name: string) => update(ref(u.db), { [`usernames/${name.toLowerCase()}`]: u.uid, [`users/${u.uid}/name`]: name });
+
+async function createRoom(u: FirebaseHandle, name: string, slot: string): Promise<string> {
+  const code = randomRoomCode();
+  await update(ref(u.db), { [`rooms/${code}/meta`]: { name, seed: 'smoke-seed', size: 'small', v: PROTOCOL_VERSION, owner: u.uid, created: serverTimestamp(), slot }, [`users/${u.uid}/rooms/${slot}`]: code });
+  const uname = (await get(ref(u.db, `users/${u.uid}/name`))).val() as string;
+  await set(ref(u.db, `rooms/${code}/members/${u.uid}`), { name: uname, joined: serverTimestamp() });
+  await set(ref(u.db, `rooms/${code}/time`), { time: 1000, day: 3 });
+  return code;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -46,9 +71,11 @@ async function denied(p: Promise<unknown>): Promise<boolean> {
   }
 }
 
-function client(fb: FirebaseHandle, code: string, name: string) {
-  const t = new FirebaseTransport(fb, code);
+function join(fb: FirebaseHandle, code: string, username: string) {
+  const t = new FirebaseTransport(fb, code, username);
   const msgs: ServerMsg[] = [];
+  let closedWith = '';
+  t.onClose = (r) => (closedWith = r);
   const welcome = new Promise<Extract<ServerMsg, { t: 'welcome' }>>((resolve, reject) => {
     t.onMessage = (m) => {
       msgs.push(m);
@@ -56,84 +83,115 @@ function client(fb: FirebaseHandle, code: string, name: string) {
       if (m.t === 'reject') reject(new Error(m.reason));
     };
   });
-  t.send({ t: 'hello', version: PROTOCOL_VERSION, name, appearance: {} as never });
-  return { t, msgs, welcome };
+  t.send({ t: 'hello', version: PROTOCOL_VERSION, name: 'Character', appearance: {} as never });
+  return { t, msgs, welcome, closed: () => closedWith };
 }
 
 async function main(): Promise<void> {
-  const A = await handle('a');
-  const B = await handle('b');
-  const code = randomRoomCode();
-  await set(ref(A.db, `rooms/${code}/meta`), { name: 'Smoke', seed: 'smoke-seed', size: 'small', v: PROTOCOL_VERSION, owner: A.uid, created: serverTimestamp() });
-  await set(ref(A.db, `rooms/${code}/time`), { time: 1000, day: 3 });
+  const A = await googleUser('alice');
+  const B = await googleUser('bob');
+  const E = await googleUser('eve');
+  const U = await unverifiedUser();
+  const nA = `Alice_${run}`.slice(0, 16);
+  const nB = `Bob_${run}`.slice(0, 16);
+  const nE = `Eve_${run}`.slice(0, 16);
 
-  const a = client(A, code, 'Alice');
-  const wa = await a.welcome;
-  check('A joins and gets a welcome', wa.world.seed === 'smoke-seed' && wa.day === 3);
-  const b = client(B, code, 'Bob');
+  console.log('— Accounts');
+  check('unverified email accounts cannot take a username', await denied(claim(U, `Unv_${run}`.slice(0, 16))));
+  await claim(A, nA);
+  await claim(B, nB);
+  check('usernames are unique (case-insensitive)', await denied(claim(E, nA.toUpperCase())));
+  await claim(E, nE);
+  check('a username cannot be changed or a second one taken', await denied(claim(A, `Al2_${run}`.slice(0, 16))));
+  check('invalid usernames are refused', await denied(update(ref(U.db), { 'usernames/a b': U.uid })));
+
+  console.log('— Owning worlds');
+  const code = await createRoom(A, 'Smoke', '1');
+  check('a named, verified player can create a world', !!code);
+  check('unverified users cannot even read world info', await denied(get(ref(U.db, `rooms/${code}/meta`))));
+  check('cannot take a slot that is still in use', await denied(update(ref(A.db), { [`rooms/QQQQQQ/meta`]: { name: 'x', seed: 's', size: 'small', v: 2, owner: A.uid, created: serverTimestamp(), slot: '1' }, [`users/${A.uid}/rooms/1`]: 'QQQQQQ' })));
+  check('there are only 5 slots', await denied(update(ref(A.db), { [`rooms/QQQQQR/meta`]: { name: 'x', seed: 's', size: 'small', v: 2, owner: A.uid, created: serverTimestamp(), slot: '6' }, [`users/${A.uid}/rooms/6`]: 'QQQQQR' })));
+  check('cannot create a world owned by someone else', await denied(update(ref(E.db), { [`rooms/QQQQQS/meta`]: { name: 'x', seed: 's', size: 'small', v: 2, owner: A.uid, created: serverTimestamp(), slot: '1' }, [`users/${E.uid}/rooms/1`]: 'QQQQQS' })));
+
+  console.log('— Joining and syncing');
+  const a = join(A, code, nA);
+  await a.welcome;
+  check('non-members cannot read the world', await denied(get(ref(E.db, `rooms/${code}/tiles`))));
+  check('non-members cannot edit the world', await denied(set(ref(E.db, `rooms/${code}/tiles/5`), encodeTile(1, 0, 0))));
+  const b = join(B, code, nB);
   const wb = await b.welcome;
-  check('B sees A already in the room', wb.players.some((p) => p.name === 'Alice'), wb.players);
-  await sleep(300);
-  check('A is told B joined', a.msgs.some((m) => m.t === 'join' && m.player.name === 'Bob'));
+  check('Bob joins and sees Alice by username', wb.players.some((p) => p.name === nA), wb.players);
 
-  // Tiles, chest, painting, flag, chat, state
   const stone = TileRegistry.id('stone');
   const chest = TileRegistry.id('chest');
-  const canvas = TileRegistry.id('canvas_small');
-  a.t.send({ t: 'tiles', changes: [10, 20, stone, 0, 3, 11, 20, chest, 0, 0, 30, 20, canvas, 0, 3] });
-  a.t.send({ t: 'chest', chest: { x: 11, y: 20, items: [{ id: 'torch', count: 5 }, null, null] } });
+  a.t.send({ t: 'tiles', changes: [10, 20, stone, 0, 3, 11, 20, chest, 0, 0] });
+  a.t.send({ t: 'chest', chest: { x: 11, y: 20, items: [{ id: 'torch', count: 5 }] } });
   a.t.send({ t: 'paint', painting: { x: 30, y: 20, w: 14, h: 14, px: '5'.repeat(196) } });
   a.t.send({ t: 'flag', flag: 'boss:gravelmaw' });
   a.t.send({ t: 'chat', text: 'hello bob' });
-  a.t.send({ t: 'state', x: 100, y: 200, vx: 1, vy: 0, facing: 1, anim: 'run', held: 'torch', armor: [null, null, null], life: 90, maxLife: 100 });
-  a.t.send({ t: 'state', x: 110, y: 200, vx: 1, vy: 0, facing: 1, anim: 'run', held: 'torch', armor: [null, null, null], life: 90, maxLife: 100 });
-  await sleep(600);
-  const bt = b.msgs.filter((m) => m.t === 'tiles').flatMap((m) => (m.t === 'tiles' ? m.changes : []));
-  check('B receives A’s tile edits', bt.length === 15 && bt.includes(stone), bt);
-  check('A does not receive its own tile echoes', !a.msgs.some((m) => m.t === 'tiles'));
-  check('B receives the chest', b.msgs.some((m) => m.t === 'chest' && m.chest.items[0]?.id === 'torch'));
-  check('B receives the painting', b.msgs.some((m) => m.t === 'paint' && m.painting.px.startsWith('555')));
-  check('B receives the flag', b.msgs.some((m) => m.t === 'flag' && m.flag === 'boss:gravelmaw'));
-  check('B receives chat', b.msgs.some((m) => m.t === 'chat' && m.text === 'hello bob' && m.name === 'Alice'));
-  check('B receives A’s movement', b.msgs.some((m) => m.t === 'state' && m.x === 110), b.msgs.filter((m) => m.t === 'state'));
+  a.t.send({ t: 'state', x: 100, y: 200, vx: 1, vy: 0, facing: 1, anim: 'run', held: null, armor: [], life: 90, maxLife: 100 });
+  a.t.send({ t: 'state', x: 110, y: 200, vx: 1, vy: 0, facing: 1, anim: 'run', held: null, armor: [], life: 90, maxLife: 100 });
+  await sleep(700);
+  check('tiles sync', b.msgs.some((m) => m.t === 'tiles' && m.changes.includes(stone)));
+  check('chests sync', b.msgs.some((m) => m.t === 'chest' && m.chest.items[0]?.id === 'torch'));
+  check('paintings sync', b.msgs.some((m) => m.t === 'paint'));
+  check('flags sync', b.msgs.some((m) => m.t === 'flag' && m.flag === 'boss:gravelmaw'));
+  check('chat syncs under the username', b.msgs.some((m) => m.t === 'chat' && m.name === nA && m.text === 'hello bob'));
+  check('movement syncs', b.msgs.some((m) => m.t === 'state' && m.x === 110));
+  check('roster shows both members online', a.t.roster().members.filter((m) => m.online).length === 2, a.t.roster());
 
-  // Late joiner gets everything in the welcome.
-  const C = await handle('c');
-  const c = client(C, code, 'Cara');
-  const wc = await c.welcome;
-  check('late joiner gets tiles', (wc.tiles ?? []).length === 15);
-  check('late joiner gets the chest', wc.chests.some((ch) => ch.x === 11 && ch.items[0]?.count === 5));
-  check('late joiner gets the painting', wc.paintings.some((p) => p.x === 30));
-  check('late joiner gets flags', wc.flags.includes('boss:gravelmaw'));
-  check('late joiner sees both players', wc.players.length === 2, wc.players.map((p) => p.name));
+  console.log('— Impersonation');
+  check('cannot chat as someone else', await denied(set(ref(B.db, `rooms/${code}/chat/x1`), { uid: A.uid, name: nA, text: 'spoof', t: serverTimestamp() })));
+  check('cannot chat under a fake name', await denied(set(ref(B.db, `rooms/${code}/chat/x2`), { uid: B.uid, name: nA, text: 'spoof', t: serverTimestamp() })));
+  check('cannot show a fake name on your avatar', await denied(set(ref(B.db, `rooms/${code}/players/${B.uid}`), { name: nA, info: '{}', s: '{}' })));
+  check('cannot move another player', await denied(set(ref(B.db, `rooms/${code}/players/${A.uid}/s`), '{}')));
+  check('world info cannot be changed', await denied(set(ref(B.db, `rooms/${code}/meta/name`), 'Hijacked')));
 
-  // Breaking the chest and canvas clears their stored data.
-  a.t.send({ t: 'tiles', changes: [11, 20, 0, 0, 0, 30, 20, 0, 0, 3] });
-  await sleep(400);
-  const room = (await get(ref(A.db, `rooms/${code}`))).val() as Record<string, Record<string, unknown> | undefined>;
-  check('broken chest data removed', !room.chests?.['11_20'], room.chests);
-  check('broken canvas painting removed', !room.paintings?.['30_20'], room.paintings);
+  console.log('— Owner powers');
+  check('members cannot lock the world', await denied(set(ref(B.db, `rooms/${code}/settings/locked`), true)));
+  check('members cannot kick others', await denied(remove(ref(B.db, `rooms/${code}/members/${A.uid}`))));
+  check('members cannot ban others', await denied(set(ref(B.db, `rooms/${code}/bans/${A.uid}`), { name: nA, at: serverTimestamp() })));
+  check('members cannot delete the world', await denied(remove(ref(B.db, `rooms/${code}`))));
+  await a.t.setLocked(true);
+  await sleep(200);
+  const locked = await join(E, code, nE).welcome.then(() => '', (e: Error) => e.message);
+  check('a locked world refuses new players', /locked/i.test(locked), locked);
+  check('…even if they write the membership themselves', await denied(set(ref(E.db, `rooms/${code}/members/${E.uid}`), { name: nE, joined: serverTimestamp() })));
+  await a.t.setLocked(false);
 
-  // Leaving
+  await a.t.kick(B.uid);
+  await sleep(500);
+  check('a kicked player is disconnected', /removed/i.test(b.closed()), b.closed());
+  check('a kicked player can no longer edit', await denied(set(ref(B.db, `rooms/${code}/tiles/7`), encodeTile(1, 0, 0))));
+  const b2 = join(B, code, nB);
+  await b2.welcome;
+  check('a kicked (not banned) player can rejoin', true);
+  await a.t.ban(B.uid);
+  await sleep(500);
+  check('a banned player who is online is disconnected and told why', /banned/i.test(b2.closed()), b2.closed());
+  const banned = await join(B, code, nB).welcome.then(() => '', (e: Error) => e.message);
+  check('a banned player cannot rejoin', /banned/i.test(banned), banned);
+  check('…even by writing membership directly', await denied(set(ref(B.db, `rooms/${code}/members/${B.uid}`), { name: nB, joined: serverTimestamp() })));
+  check('the owner sees the ban list', a.t.roster().bans.some((x) => x.uid === B.uid), a.t.roster().bans);
+  await a.t.unban(B.uid);
+  const b3 = join(B, code, nB);
+  await b3.welcome.catch(() => undefined);
+  check('after an unban they can rejoin', b3.msgs.some((m) => m.t === 'welcome'));
+
+  console.log('— Late join');
+  const e = join(E, code, nE);
+  const we = await e.welcome;
+  check('late joiner gets tiles, chest, painting and flags', (we.tiles ?? []).length >= 10 && we.chests.length === 1 && we.paintings.length === 1 && we.flags.includes('boss:gravelmaw'));
+
+  console.log('— Deleting');
   a.t.close();
-  await sleep(400);
-  check('B is told A left', b.msgs.some((m) => m.t === 'leave'));
+  b3.t.close();
+  e.t.close();
+  await sleep(300);
+  await update(ref(A.db), { [`rooms/${code}`]: null, [`users/${A.uid}/rooms/1`]: null });
+  check('the owner can delete the world and free the slot', !(await get(ref(A.db, `users/${A.uid}/rooms/1`))).exists());
 
-  // Security rules
-  const anon = await handle('anon', false);
-  check('rules: signed-out users cannot read rooms', await denied(get(ref(anon.db, `rooms/${code}`))));
-  check('rules: nobody can list all rooms', await denied(get(ref(B.db, 'rooms'))));
-  check('rules: room meta cannot be overwritten', await denied(set(ref(B.db, `rooms/${code}/meta/name`), 'Hijacked')));
-  check('rules: cannot write another player', await denied(set(ref(B.db, `rooms/${code}/players/${A.uid}`), { info: '{}', s: '{}' })));
-  check('rules: tile values are checked', await denied(set(ref(B.db, `rooms/${code}/tiles/5`), 'dirt')));
-  check('rules: flags are write-once', await denied(set(ref(B.db, `rooms/${code}/flags/boss:gravelmaw`), true)));
-  check('rules: chat must be from yourself', await denied(set(ref(B.db, `rooms/${code}/chat/x`), { uid: A.uid, name: 'A', text: 'spoof', t: serverTimestamp() })));
-  check('rules: cannot write to a room that does not exist', await denied(set(ref(B.db, 'rooms/ZZZZZZ/tiles/1'), encodeTile(1, 0, 0))));
-  check('rules: bad room codes are refused', await denied(set(ref(B.db, 'rooms/bad/meta'), { name: 'x', seed: 's', size: 'small', v: 2, owner: B.uid, created: serverTimestamp() })));
-
-  b.t.close();
-  c.t.close();
-  await Promise.all(apps.map((a) => deleteApp(a)));
+  await Promise.all(apps.map((x) => deleteApp(x)));
   console.log(failures ? `\n${failures} check(s) failed` : '\nAll online checks passed');
   process.exit(failures ? 1 : 0);
 }

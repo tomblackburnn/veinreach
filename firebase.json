@@ -41,7 +41,11 @@
   },
   "auth": {
     "providers": {
-      "anonymous": true
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Veinreach",
+        "supportEmail": "asteroidthedino@gmail.com"
+      }
     }
   },
   "emulators": {

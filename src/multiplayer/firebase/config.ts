@@ -1,7 +1,7 @@
 /**
  * Firebase web configuration for the Veinreach project. These values are
  * public identifiers, not secrets: access is controlled by the Realtime
- * Database security rules (database.rules.json) and Firebase Auth.
+ * Database security rules (database.rules.json), Firebase Auth and App Check.
  */
 export const firebaseConfig = {
   apiKey: 'AIzaSyBFTzMyfv7GE93jDKoyLBAlyW_fgSWRsrY',
@@ -12,6 +12,12 @@ export const firebaseConfig = {
   messagingSenderId: '361024917241',
   appId: '1:361024917241:web:b8701f4d4583dc79f65c28',
 };
+
+/**
+ * reCAPTCHA Enterprise site key for Firebase App Check. Leave empty until the
+ * site has its final domain; see docs/DEPLOYMENT.md ("App Check").
+ */
+export const APP_CHECK_SITE_KEY = '';
 
 /** `VITE_FIREBASE_EMULATOR=1 npm run dev` talks to the local emulators (npm run emulators). */
 export const USE_EMULATOR = import.meta.env?.VITE_FIREBASE_EMULATOR === '1';

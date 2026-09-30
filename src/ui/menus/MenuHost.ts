@@ -18,7 +18,7 @@ export interface MenuHost extends GameHost {
   showWorldCreate(c: CharacterSave | null): void;
   showSettings(): void;
   showCredits(): void;
-  showMultiplayer(c: CharacterSave): void;
+  showMultiplayer(c: CharacterSave): void | Promise<void>;
   startWorld(c: CharacterSave, record: WorldRecord, isNew: boolean): void;
   joinServer(c: CharacterSave, url: string): void;
   joinRoom(c: CharacterSave, code: string): void;

@@ -22,6 +22,24 @@ export interface RoomMeta {
   owner: string;
 }
 
+/** Who belongs to the room, for the in-game Online World panel. */
+export interface RosterEntry {
+  uid: string;
+  name: string;
+  online: boolean;
+  owner: boolean;
+  you: boolean;
+}
+
+export interface Roster {
+  code: string;
+  youOwn: boolean;
+  locked: boolean;
+  members: RosterEntry[];
+  /** Only visible to the owner. */
+  bans: { uid: string; name: string }[];
+}
+
 const TIME_WRITE_TICKS = 60 * 5;
 const MAX_PATHS_PER_WRITE = 2000;
 
@@ -57,7 +75,15 @@ export class FirebaseTransport implements Transport {
   private timeTick = 0;
   private wasConnected = true;
 
-  constructor(private fb: FirebaseHandle, readonly code: string) {
+  private owner = '';
+  private locked = false;
+  private members = new Map<string, string>();
+  private online = new Set<string>();
+  private bans = new Map<string, string>();
+  /** Called whenever membership, presence, bans or the lock change. */
+  onRoster: ((r: Roster) => void) | null = null;
+
+  constructor(private fb: FirebaseHandle, readonly code: string, private username: string) {
     this.label = `online world ${code}`;
     this.base = ref(fb.db, `rooms/${code}`);
     this.me = child(this.base, `players/${fb.uid}`);
@@ -164,8 +190,9 @@ export class FirebaseTransport implements Transport {
     return id;
   }
 
-  private async hello(name: string, appearance: unknown): Promise<void> {
-    this.name = String(name).slice(0, 24) || 'Player';
+  private async hello(_character: string, appearance: unknown): Promise<void> {
+    // Online, everyone is known by their account username (the rules enforce it).
+    this.name = this.username;
     const metaSnap = await get(child(this.base, 'meta'));
     if (!metaSnap.exists()) {
       this.emit({ t: 'reject', reason: `There is no online world with the code ${this.code}.` });
@@ -181,6 +208,12 @@ export class FirebaseTransport implements Transport {
       return;
     }
     ({ width: this.width, height: this.height } = WORLD_SIZES[meta.size]);
+    this.owner = meta.owner;
+    const refusal = await this.joinAsMember();
+    if (refusal) {
+      this.emit({ t: 'reject', reason: refusal });
+      return;
+    }
     this.info = JSON.stringify({ name: this.name, appearance: sanitizeAppearance(appearance) });
     await this.announce();
 
@@ -196,8 +229,17 @@ export class FirebaseTransport implements Transport {
       this.watch('paintings', (k, v, initial) => this.onPainting(k, v, initial)),
       this.watch('flags', (k, _v, initial) => (initial ? flags.push(k) : this.emit({ t: 'flag', flag: k }))),
       this.watch('players', (k, v, initial) => this.onPlayer(k, v, initial ? players : null), (k) => this.onPlayerLeft(k)),
+      this.watch('members', (k, v) => this.onMember(k, v), (k) => this.onMemberRemoved(k)),
       this.watchChat(),
+      ...(this.owner === this.fb.uid ? [this.watch('bans', (k, v) => this.onBan(k, v), (k) => this.onUnban(k))] : []),
     ]);
+    this.watchOwnMembership();
+    this.unsubs.push(
+      onValue(child(this.base, 'settings/locked'), (snap) => {
+        this.locked = snap.val() === true;
+        this.rosterChanged();
+      }),
+    );
     const timeSnap = await get(child(this.base, 'time'));
     const tv = timeSnap.val() as { time?: unknown; day?: unknown } | null;
     this.unsubs.push(
@@ -227,10 +269,34 @@ export class FirebaseTransport implements Transport {
     });
   }
 
+  /**
+   * Make sure we're allowed in: not banned, and either already a member or
+   * the room isn't locked (then join). Returns why we can't join, or null.
+   */
+  private async joinAsMember(): Promise<string | null> {
+    const uid = this.fb.uid;
+    try {
+      if ((await get(child(this.base, `bans/${uid}`))).exists()) return 'You have been banned from this world by its owner.';
+      const member = await get(child(this.base, `members/${uid}`));
+      if (!member.exists()) {
+        if ((await get(child(this.base, 'settings/locked'))).val() === true) return 'This world is locked: its owner isn’t letting new players join right now.';
+        await set(child(this.base, `members/${uid}`), { name: this.username, joined: serverTimestamp() });
+      }
+      // The same account can only be in a world once (another tab or device).
+      for (let tries = 0; tries < 3; tries++) {
+        if (!(await get(this.me)).exists()) return null;
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      return 'You’re already playing in this world (in another tab or on another device).';
+    } catch (e) {
+      return friendlyError(e);
+    }
+  }
+
   /** Write our player entry and make the database remove it if we vanish. */
   private async announce(): Promise<void> {
     await onDisconnect(this.me).remove();
-    await set(this.me, { info: this.info, s: this.lastState || JSON.stringify({ x: 0, y: 0, vx: 0, vy: 0, facing: 1, anim: 'idle', held: null, armor: [], life: 100, maxLife: 100 }) });
+    await set(this.me, { name: this.username, info: this.info, s: this.lastState || JSON.stringify({ x: 0, y: 0, vx: 0, vy: 0, facing: 1, anim: 'idle', held: null, armor: [], life: 100, maxLife: 100 }) });
   }
 
   /** Report connection drops; on reconnect, re-announce (onDisconnect removed our entry). */
@@ -360,11 +426,16 @@ export class FirebaseTransport implements Transport {
   }
 
   private onPlayer(uid: string, v: unknown, initial: PlayerInfo[] | null): void {
+    if (!this.online.has(uid)) {
+      this.online.add(uid);
+      this.rosterChanged();
+    }
     if (uid === this.fb.uid) return;
-    const e = v as { info?: unknown; s?: unknown } | null;
+    const e = v as { name?: unknown; info?: unknown; s?: unknown } | null;
     const info = parseInfo(e?.info);
     const st = sanitizeState(e?.s);
     if (!info) return;
+    if (typeof e?.name === 'string') info.name = e.name.slice(0, 16);
     const known = this.ids.has(uid);
     const id = this.idFor(uid);
     if (initial || !known) {
@@ -376,10 +447,84 @@ export class FirebaseTransport implements Transport {
   }
 
   private onPlayerLeft(uid: string): void {
+    if (this.online.delete(uid)) this.rosterChanged();
     const id = this.ids.get(uid);
     if (id === undefined) return;
     this.ids.delete(uid);
     this.emit({ t: 'leave', id });
+  }
+
+  private onMember(uid: string, v: unknown): void {
+    const name = (v as { name?: unknown } | null)?.name;
+    this.members.set(uid, typeof name === 'string' ? name.slice(0, 16) : '?');
+    this.rosterChanged();
+  }
+
+  private onMemberRemoved(uid: string): void {
+    this.members.delete(uid);
+    this.rosterChanged();
+  }
+
+  /**
+   * Our own membership entry stays readable to us even after we lose access
+   * to the rest of the room, so this is how a kicked or banned player finds out.
+   */
+  private watchOwnMembership(): void {
+    const removed = () => void this.removedFromRoom();
+    this.unsubs.push(onValue(child(this.base, `members/${this.fb.uid}`), (snap) => !snap.exists() && removed(), removed));
+  }
+
+  private async removedFromRoom(): Promise<void> {
+    if (this.closed) return;
+    let banned = false;
+    try {
+      banned = (await get(child(this.base, `bans/${this.fb.uid}`))).exists();
+    } catch {
+      /* the room may have been deleted */
+    }
+    const reason = banned ? 'You have been banned from this world by its owner.' : 'You were removed from this world (by its owner, or the world was deleted).';
+    this.close();
+    this.onClose?.(reason);
+  }
+
+  private onBan(uid: string, v: unknown): void {
+    const name = (v as { name?: unknown } | null)?.name;
+    this.bans.set(uid, typeof name === 'string' ? name : '?');
+    this.rosterChanged();
+  }
+
+  private onUnban(uid: string): void {
+    this.bans.delete(uid);
+    this.rosterChanged();
+  }
+
+  private rosterChanged(): void {
+    this.onRoster?.(this.roster());
+  }
+
+  roster(): Roster {
+    const members: RosterEntry[] = [...this.members].map(([uid, name]) => ({ uid, name, online: this.online.has(uid), owner: uid === this.owner, you: uid === this.fb.uid }));
+    members.sort((a, b) => Number(b.owner) - Number(a.owner) || Number(b.online) - Number(a.online) || a.name.localeCompare(b.name));
+    return { code: this.code, youOwn: this.owner === this.fb.uid, locked: this.locked, members, bans: [...this.bans].map(([uid, name]) => ({ uid, name })) };
+  }
+
+  // ---- Owner tools (the rules reject these from anyone but the owner) ----
+
+  kick(uid: string): Promise<void> {
+    return update(this.base, { [`members/${uid}`]: null, [`players/${uid}`]: null });
+  }
+
+  ban(uid: string): Promise<void> {
+    const name = this.members.get(uid) ?? '?';
+    return update(this.base, { [`bans/${uid}`]: { name, at: serverTimestamp() }, [`members/${uid}`]: null, [`players/${uid}`]: null });
+  }
+
+  unban(uid: string): Promise<void> {
+    return remove(child(this.base, `bans/${uid}`));
+  }
+
+  setLocked(locked: boolean): Promise<void> {
+    return set(child(this.base, 'settings/locked'), locked);
   }
 
   private sendState(m: PlayerState): void {
