@@ -50,7 +50,9 @@ npx tsx scripts/online-smoke.ts   # 40 scripted checks: accounts, membership, ki
 - Players sign in with Google. Email/password sign-in is **switched off**, both in the game and in Firebase (`signIn.email.enabled = false`), for the reason under [Account email links](#account-email-links). The rules still only accept accounts with `email_verified`, which Google accounts always have.
 - Each account claims one unique username (3–16 characters: letters, numbers, `_`; case-insensitive). It can't be changed, and it's what others see in chat and on nameplates. The rules check that every chat message and avatar name matches its owner's username.
 - An account can own at most **5** online worlds at once; deleting one frees its slot.
-- **Delete account** (Multiplayer menu) removes the account's worlds, username and profile, then the login. Single-player saves are untouched.
+- Before signing in, players tick "I'm 13 or older and agree to the Terms and Privacy Policy"; the Google button stays disabled until they do.
+- **Delete account** (Multiplayer menu) asks Google for a fresh sign-in, then removes the account's chat, player entry and membership in every world it joined (tracked in `users/<uid>/joined`), its own worlds, its username and profile, and finally the login. Bans stay with the world that issued them. Single-player saves are untouched.
+- **Leave** (next to a recently joined world) removes the player's membership and chat from that world.
 
 ## How rooms work
 
@@ -108,8 +110,16 @@ Joining a room works like this:
 - **Only members** can read or edit a world. You become a member by joining with the code, which the rules refuse while you're **banned** or the world is **locked**. Only the owner can kick, ban, unban, lock or delete the world.
 - Tiles, liquids, chests, paintings and flags must match their expected shapes and sizes. Flags are write-once.
 - Each player can write only their own avatar and their own chat, both under their own username, and chat gets a server timestamp.
+- Chat is kept for **24 hours**: any member may delete messages older than that (checked against server time), and players can delete their own. Games clean up old messages when they join a world and every 10 minutes.
 
 **Remaining limit:** the rules can't simulate the game, so a *member* running a modified game could still make edits a normal player couldn't. Owners handle that by banning the account (the ban is enforced by the rules). App Check stops scripted clients that aren't running the real site. The self-hosted Node server (`npm run server`) validates game logic if you ever need that.
+
+## Legal pages and contact details
+
+- `public/privacy.html`, `public/terms.html` and `public/about.html` are plain static pages sharing `public/legal.css`. Hosting has `cleanUrls` on, so they're served at `/privacy`, `/terms` and `/about`.
+- The contact email appears in those three pages and as `supportEmail` in `firebase.json` (shown on Google's sign-in screen). When it changes, update all four. The `firebase.json` address must first be added to the Firebase project.
+- If App Check is switched on, add a line about it to the privacy policy (it uses reCAPTCHA, which processes device and browser signals).
+- Fonts are self-hosted from `public/fonts/` (SIL OFL licences in `public/licenses/`), so the site makes no requests to Google Fonts.
 
 ## Free-tier usage (Spark plan)
 

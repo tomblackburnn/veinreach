@@ -68,6 +68,14 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- **Privacy, legal pages and accessibility.**
+  - Privacy Policy, Terms and About pages (UK GDPR), linked from the main menu, the credits and the sign-in screens.
+  - Online sign-in needs an "I'm 13 or older and agree" tick.
+  - Chat is deleted after 24 hours.
+  - "Delete account" now also removes chat, membership and player entries in joined worlds (bans stay); a new "Leave" button leaves a joined world.
+  - Fonts are served from the site (no Google Fonts requests).
+  - Menus work by keyboard (Tab/Enter/Space/Escape, visible focus); dialogs are labelled; the game view and inputs have screen-reader labels; the green and gold buttons and error text meet WCAG AA contrast.
+
 - Fixed: dry gaps in the underworld's lava lakes. Lakes are flood-filled after smoothing, so the space under islands and overhangs fills too.
   - Ashen Spires over a lake now stand on a brick plinth, so their doorways sit above the lava.
   - Liquids are woken again whenever the player reaches a new area (not just on load), and lava beside an open gap now counts as unsettled, so older worlds heal when visited.
