@@ -88,6 +88,8 @@ export class InputManager {
   overCanvas = true;
   /** Suspend game input (e.g. while typing in a text field). */
   typing = false;
+  /** A world is being played: Tab/Space/arrows become game keys instead of scrolling or moving focus. */
+  gameActive = false;
 
   constructor(private canvas: HTMLCanvasElement) {
     window.addEventListener('keydown', this.onKeyDown);
@@ -117,7 +119,7 @@ export class InputManager {
   private onKeyDown = (e: KeyboardEvent): void => {
     if (this.isTextTarget(e)) return;
     if (isUiControl(e.target) && e.code !== 'Escape') return;
-    if (['Space', 'Tab', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+    if (this.gameActive && ['Space', 'Tab', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
     if (!this.down.has(e.code)) this.pressed.add(e.code);
     this.down.add(e.code);
   };

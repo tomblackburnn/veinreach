@@ -33,6 +33,21 @@ describe('keyboard access', () => {
     b.remove();
   });
 
+  it('in menus Tab and Space keep their normal job; only during play are they game keys', () => {
+    const input = new InputManager(document.createElement('canvas'));
+    const press = (code: string) => {
+      const ev = new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true });
+      document.body.dispatchEvent(ev);
+      return ev.defaultPrevented;
+    };
+    expect(press('Tab')).toBe(false);
+    expect(press('Space')).toBe(false);
+    input.gameActive = true;
+    expect(press('Tab')).toBe(true);
+    expect(press('Space')).toBe(true);
+    input.dispose();
+  });
+
   it('dialogs are labelled, take focus, and Escape cancels a confirm', async () => {
     const root = document.createElement('div');
     root.id = 'ui-test-root';

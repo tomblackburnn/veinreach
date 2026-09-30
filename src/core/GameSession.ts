@@ -227,6 +227,7 @@ export class GameSession implements GameContext {
     this.bus.on('message', ({ text, color }) => this.hud.message(text, color));
     this.bus.on('playerDied', ({ cause }) => this.onPlayerDied(cause));
     this.wakeLiquidsAroundPlayer();
+    this.input.gameActive = true;
     // Resume an interrupted Unsealing.
     if (this.progression.has(FLAGS.unsealed) && !this.progression.has('unseal:done')) this.unsealGen = unsealWorld(this, this.record.meta.seed);
     this.net?.attach(this);
@@ -703,6 +704,7 @@ export class GameSession implements GameContext {
 
   dispose(): void {
     this.disposed = true;
+    this.input.gameActive = false;
     for (const u of this.unsubscribers) u();
     this.bus.clear();
     this.net?.disconnect();
