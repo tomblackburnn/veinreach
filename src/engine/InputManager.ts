@@ -64,6 +64,13 @@ export const ACTION_LABELS: Record<Action, string> = {
   guide: 'Delver\u2019s Almanac (guide)',
 };
 
+const UI_CONTROLS = 'button, a[href], select, summary, [role="button"], [tabindex]:not([tabindex="-1"]), input[type="checkbox"], input[type="radio"], input[type="color"], input[type="range"]';
+
+/** Menus and panels keep normal keyboard behaviour (Tab moves focus, Space/Enter press buttons). */
+export function isUiControl(target: EventTarget | null): boolean {
+  return typeof Element !== 'undefined' && target instanceof Element && target !== document.body && !!target.closest(UI_CONTROLS);
+}
+
 export class InputManager {
   private down = new Set<string>();
   private pressed = new Set<string>();
@@ -93,7 +100,14 @@ export class InputManager {
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('mouseenter', () => (this.overCanvas = true));
     canvas.addEventListener('mouseleave', () => (this.overCanvas = false));
+    // A mouse-clicked button shouldn't keep focus, or Space would press it again mid-game.
+    // (detail is 0 for keyboard-activated clicks, so keyboard users keep their place.)
+    window.addEventListener('click', this.onClick);
   }
+
+  private onClick = (e: MouseEvent): void => {
+    if (e.detail > 0 && isUiControl(e.target)) ((e.target as Element).closest('button, a, summary, [role="button"]') as HTMLElement | null)?.blur();
+  };
 
   private isTextTarget(e: Event): boolean {
     const t = e.target as HTMLElement | null;
@@ -102,6 +116,7 @@ export class InputManager {
 
   private onKeyDown = (e: KeyboardEvent): void => {
     if (this.isTextTarget(e)) return;
+    if (isUiControl(e.target) && e.code !== 'Escape') return;
     if (['Space', 'Tab', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
     if (!this.down.has(e.code)) this.pressed.add(e.code);
     this.down.add(e.code);
@@ -196,5 +211,6 @@ export class InputManager {
     window.removeEventListener('blur', this.onBlur);
     window.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseup', this.onMouseUp);
+    window.removeEventListener('click', this.onClick);
   }
 }

@@ -51,25 +51,41 @@ export class UIManager {
     this.screenEl = null;
   }
 
-  /** Simple modal with buttons; resolves with the index of the button chosen. */
-  modal(title: string, body: string | HTMLElement, buttons: { label: string; kind?: string }[]): Promise<number> {
+  private modalSeq = 0;
+
+  /** Modal with buttons; resolves with the chosen index. Escape picks `escapeIndex` when given. */
+  modal(title: string, body: string | HTMLElement, buttons: { label: string; kind?: string }[], escapeIndex?: number): Promise<number> {
     return new Promise((resolve) => {
       const back = h('div', { class: 'modal-back' });
-      const btns = buttons.map((b, i) =>
-        h('button', { class: `btn ${b.kind ?? ''}`, onclick: () => { back.remove(); resolve(i); } }, b.label),
-      );
-      const panel = h('div', { class: 'panel col', style: 'max-width:520px' }, h('h2', {}, title), typeof body === 'string' ? h('div', { class: 'dialog-text' }, body) : body, h('div', { class: 'row', style: 'justify-content:flex-end' }, ...btns));
+      const before = document.activeElement as HTMLElement | null;
+      const done = (i: number) => {
+        back.remove();
+        before?.focus?.();
+        resolve(i);
+      };
+      const btns = buttons.map((b, i) => h('button', { class: `btn ${b.kind ?? ''}`, onclick: () => done(i) }, b.label));
+      const titleId = `modal-title-${++this.modalSeq}`;
+      const panel = h('div', { class: 'panel col', style: 'max-width:520px', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId },
+        h('h2', { id: titleId }, title),
+        typeof body === 'string' ? h('div', { class: 'dialog-text' }, body) : body,
+        h('div', { class: 'row', style: 'justify-content:flex-end' }, ...btns));
+      panel.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        e.stopPropagation();
+        if (escapeIndex !== undefined) done(escapeIndex);
+      });
       back.appendChild(panel);
       this.root.appendChild(back);
+      btns[0]?.focus();
     });
   }
 
   alert(title: string, text: string): Promise<number> {
-    return this.modal(title, text, [{ label: 'OK' }]);
+    return this.modal(title, text, [{ label: 'OK' }], 0);
   }
 
   confirm(title: string, text: string, danger = false): Promise<boolean> {
-    return this.modal(title, text, [{ label: 'Cancel' }, { label: 'Confirm', kind: danger ? 'danger' : 'good' }]).then((i) => i === 1);
+    return this.modal(title, text, [{ label: 'Cancel' }, { label: 'Confirm', kind: danger ? 'danger' : 'good' }], 0).then((i) => i === 1);
   }
 
   download(filename: string, text: string): void {

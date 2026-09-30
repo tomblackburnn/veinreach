@@ -22,6 +22,7 @@
     "@types/node": "^26.6.3",
     "@types/ws": "^8.18.2",
     "firebase-tools": "^15.32.0",
+    "happy-dom": "^20.14.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1",
