@@ -21,7 +21,13 @@ Still to do when you have a custom domain:
    - Put the site key in `APP_CHECK_SITE_KEY` in `config.ts` and redeploy.
    - Check the App Check metrics in the console. Once nearly all requests are verified, press **Enforce** for Realtime Database; unverified requests (scripts, other sites) are then rejected.
    - For local development against the real database, the console prints a debug token on `localhost`. Register it under App Check → *Manage debug tokens*.
-5. **Email template (optional):** Authentication → Templates. Set the sender name and point the action URL at your domain.
+5. **Email links:** Authentication → Templates → (pencil) → *Customize action URL*. Set it to `https://<your domain>/auth/action`; one setting covers all templates. You can also set the sender name there.
+
+## Account email links
+
+Verification and password-reset emails link to the game's own page at `/auth/action` (`src/ui/AuthActionPage.ts`), not Firebase's default handler. Some mobile mail apps and link scanners damage the link (for example turning `&` into `&amp;`), and the default page then fails with *"The selected page mode is invalid"*. Our page reads damaged links. If the `mode` part is missing, it asks Firebase what the code is for (`checkActionCode`).
+
+This needs the template action URL set to `https://veinreach-game.web.app/auth/action` in the console (Authentication → Templates → pencil → *Customize action URL*). Firebase doesn't allow changing it through the API on this project.
 
 `firebase.json` runs `npm run build` before each hosting deploy. Hashed JS and CSS bundles are cached for a year; `index.html` is always revalidated, so players get new versions on reload.
 

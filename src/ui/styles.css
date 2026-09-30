@@ -312,3 +312,4 @@ input[type=checkbox] { accent-color: var(--gold); width: 18px; height: 18px; }
 .account-msg.ok { color: #9fd0ff; }
 .account-bar { gap: 8px; flex-wrap: wrap; }
 .google-btn { width: 100%; }
+.auth-action a.btn { text-decoration: none; display: inline-block; }
