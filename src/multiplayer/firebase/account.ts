@@ -158,15 +158,30 @@ export function deleteOwnedRoom(room: OwnedRoom): Promise<void> {
   });
 }
 
-/** Delete the account: everything it left in online worlds, its worlds, username and profile, then the login itself. */
-export function deleteAccount(): Promise<void> {
+/**
+ * Google wants a fresh sign-in before an account is deleted. Call this first,
+ * straight from the player's click (before any other network request), so the
+ * popup isn't blocked and nothing is deleted if they cancel.
+ */
+export function confirmIdentity(): Promise<void> {
+  return wrap(async () => {
+    const c = await getFirebaseCore();
+    const u = c.auth.currentUser;
+    if (u?.providerData.some((p) => p.providerId === 'google.com')) await reauthenticateWithPopup(u, new GoogleAuthProvider());
+  });
+}
+
+/**
+ * Delete the account (after confirmIdentity): everything it left in online
+ * worlds, its worlds, username and profile, then the login itself.
+ * `recentCodes` are worlds this browser remembers joining.
+ */
+export function deleteAccount(recentCodes: string[] = []): Promise<void> {
   return wrap(async () => {
     const c = await getFirebaseCore();
     const u = c.auth.currentUser;
     if (!u) return;
-    // Google wants a fresh sign-in before deleting a login; ask first so nothing is half-deleted.
-    if (u.providerData.some((p) => p.providerId === 'google.com')) await reauthenticateWithPopup(u, new GoogleAuthProvider());
-    await purgeAccountData(c.db, u.uid);
+    await purgeAccountData(c.db, u.uid, recentCodes);
     await deleteUser(u);
   });
 }

@@ -251,6 +251,17 @@ async function main(): Promise<void> {
   await purgeAccountData(R.db, R.uid);
   check('a banned player can still delete their account', !(await get(ref(P.db, `usernames/${nR.toLowerCase()}`))).exists());
   check('…and the ban stays with the world', (await get(ref(P.db, `rooms/${pc}/bans/${R.uid}`))).exists());
+  // Worlds joined before the joined list existed are found from the browser's recent list.
+  const S = await googleUser('s1');
+  const nS = `Ss_${run}`.slice(0, 16);
+  await claim(S, nS);
+  const sj = join(S, pc, nS);
+  await sj.welcome;
+  sj.t.close();
+  await sleep(300);
+  await remove(ref(S.db, `users/${S.uid}/joined/${pc}`)); // as if joined before this release
+  await purgeAccountData(S.db, S.uid, [pc]);
+  check('deleting an account also cleans up worlds from the recent list', !(await get(ref(P.db, `rooms/${pc}/members/${S.uid}`))).exists());
   // Deleting an owner deletes their worlds.
   await purgeAccountData(P.db, P.uid);
   check('deleting an owner deletes their worlds', (await denied(get(ref(P.db, `rooms/${pc}/meta`)))) || !(await get(ref(P.db, `rooms/${pc}/meta`))).exists());

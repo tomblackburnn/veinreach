@@ -23,9 +23,14 @@ export async function leaveRoomData(db: Database, uid: string, code: string): Pr
   await remove(ref(db, `users/${uid}/joined/${code}`)).catch(() => undefined);
 }
 
-/** Everything an account has in the database: joined worlds, owned worlds, username and profile. */
-export async function purgeAccountData(db: Database, uid: string): Promise<void> {
-  const joined = Object.keys(((await get(ref(db, `users/${uid}/joined`))).val() ?? {}) as Record<string, true>);
+/**
+ * Everything an account has in the database: joined worlds, owned worlds,
+ * username and profile. `alsoCheck` adds worlds known from elsewhere (the
+ * browser's recent list), for joins made before the joined list existed.
+ */
+export async function purgeAccountData(db: Database, uid: string, alsoCheck: string[] = []): Promise<void> {
+  const listed = Object.keys(((await get(ref(db, `users/${uid}/joined`))).val() ?? {}) as Record<string, true>);
+  const joined = [...new Set([...listed, ...alsoCheck])];
   const owned = ((await get(ref(db, `users/${uid}/rooms`))).val() ?? {}) as Record<string, string>;
   const ownedCodes = new Set(Object.values(owned));
   for (const code of joined) if (!ownedCodes.has(code)) await leaveRoomData(db, uid, code);

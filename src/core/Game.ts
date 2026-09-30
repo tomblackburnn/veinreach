@@ -32,7 +32,7 @@ import { defaultWorldState } from '../world/WorldState';
 import { applyRemotePainting } from '../world/paintings';
 import { ItemRegistry } from '../items/ItemRegistry';
 import { RecipeRegistry } from '../crafting/RecipeRegistry';
-import { forgetRoom, clearRecentRooms } from '../multiplayer/recentRooms';
+import { recentRooms, forgetRoom, clearRecentRooms } from '../multiplayer/recentRooms';
 
 /** Application root: owns the canvas, services, menus and the active session. */
 export class Game implements MenuHost {
@@ -173,8 +173,9 @@ export class Game implements MenuHost {
         signOut: act(() => acc.signOut()),
         deleteAccount: act(async () => {
           if (!(await this.ui.confirm('Delete account', 'This permanently deletes your account, your username, every online world you own (for all their members), and your chat and membership in worlds you joined. Your single-player characters and worlds are not affected. Google will ask you to sign in once more to confirm.', true))) return;
+          await acc.confirmIdentity();
           const owned = await acc.ownedRooms();
-          await acc.deleteAccount();
+          await acc.deleteAccount(recentRooms().map((r) => r.code));
           for (const w of owned) await this.unlinkCopy(w.code);
           clearRecentRooms();
         }),
