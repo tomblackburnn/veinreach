@@ -75,7 +75,7 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
   - All of it is enforced by the database rules.
   - App Check is wired up and waiting for the site key.
   - `scripts/online-smoke.ts` now runs 40 checks.
-  - Not deployed yet: waiting for the custom domain.
+  - Deployed to https://veinreach-game.web.app. The custom domain and App Check come later.
 - **Online multiplayer with Firebase.**
   - The game deploys to Firebase Hosting.
   - Online worlds live in Realtime Database: create one, join by a six-character code, or put a saved world online. No server to run.

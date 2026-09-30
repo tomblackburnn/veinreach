@@ -3,24 +3,25 @@
 The game is a static site on **Firebase Hosting**. Online multiplayer uses **Firebase Realtime Database** with **Firebase Auth** accounts (Google, or email and password with a verified email), so no game server is needed. Single-player never asks for an account.
 
 - Project: `veinreach-game` (see `.firebaserc`)
-- Site: not deployed yet. It will go on a custom domain; see [Going live](#going-live).
+- Site: https://veinreach-game.web.app. A custom domain can be added later; see [Going live](#going-live).
 - Database: `veinreach-game-default-rtdb`, in europe-west1
 - Web config: `src/multiplayer/firebase/config.ts`. These values are public identifiers, not secrets; access is controlled by the rules.
 
 ## Going live
 
-Nothing is deployed yet. The live database is still in **locked mode**, which denies everything. Once you have a domain:
+The site, database rules and auth settings are deployed to https://veinreach-game.web.app. To publish changes, run `npx firebase login` (once per machine), then `npm run deploy`.
 
-1. **Deploy:** `npx firebase login` (once per machine), then `npm run deploy`. This builds the game, then deploys hosting, the database rules and the auth settings (Google + email/password).
-2. **Custom domain:** Firebase console → Hosting → *Add custom domain*. Add the DNS records it shows at your registrar. Firebase provisions the HTTPS certificate itself.
-3. **Authorized domains:** Firebase console → Authentication → Settings → *Authorized domains*: add your domain so Google sign-in works on it.
-4. **Sign-in popup (optional, recommended):** set `authDomain` in `src/multiplayer/firebase/config.ts` to your domain. That makes the Google sign-in popup show your domain instead of `veinreach-game.firebaseapp.com`, and avoids third-party-cookie problems in some browsers.
-5. **App Check:**
+Still to do when you have a custom domain:
+
+1. **Custom domain:** Firebase console → Hosting → *Add custom domain*. Add the DNS records it shows at your registrar. Firebase provisions the HTTPS certificate itself.
+2. **Authorized domains:** Firebase console → Authentication → Settings → *Authorized domains*: add your domain so Google sign-in works on it.
+3. **Sign-in popup (optional, recommended):** set `authDomain` in `src/multiplayer/firebase/config.ts` to your domain. That makes the Google sign-in popup show your domain instead of `veinreach-game.firebaseapp.com`, and avoids third-party-cookie problems in some browsers.
+4. **App Check:**
    - Firebase console → App Check → *Apps* → register the web app with **reCAPTCHA Enterprise** (Firebase creates the key), listing your domain and `localhost`.
    - Put the site key in `APP_CHECK_SITE_KEY` in `config.ts` and redeploy.
    - Check the App Check metrics in the console. Once nearly all requests are verified, press **Enforce** for Realtime Database; unverified requests (scripts, other sites) are then rejected.
    - For local development against the real database, the console prints a debug token on `localhost`. Register it under App Check → *Manage debug tokens*.
-6. **Email template (optional):** Authentication → Templates. Set the sender name and point the action URL at your domain.
+5. **Email template (optional):** Authentication → Templates. Set the sender name and point the action URL at your domain.
 
 `firebase.json` runs `npm run build` before each hosting deploy. Hashed JS and CSS bundles are cached for a year; `index.html` is always revalidated, so players get new versions on reload.
 
