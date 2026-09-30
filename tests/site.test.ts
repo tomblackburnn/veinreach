@@ -28,6 +28,14 @@ describe('site', () => {
     const html = read('public/privacy.html');
     for (const s of ['United Kingdom', 'ICO', '24 hours', '13', 'Belgium', 'Delete account', 'one month', 'IndexedDB', 'not use cookies for tracking']) expect(html, s).toContain(s);
   });
+  it('privacy policy matches what the game actually does', () => {
+    const html = read('public/privacy.html');
+    expect(html).toContain('the next time anyone opens that world'); // chat is pruned by the players' games, not a server
+    expect(html).toContain('characters, worlds and settings, in IndexedDB'); // settings live in IndexedDB, not localStorage
+    expect(html).toContain('stays in step with the online world'); // linked single-player copies sync
+    expect(html).toContain('and when it happened'); // bans record a time
+    expect(html).toContain('from a different browser'); // joins before the joined list existed
+  });
   it('terms set the age, conduct rules and law', () => {
     const html = read('public/terms.html');
     for (const s of ['13', 'parent', 'England and Wales', 'death or personal injury']) expect(html, s).toContain(s);

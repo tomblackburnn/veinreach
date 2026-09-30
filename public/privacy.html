@@ -28,7 +28,8 @@
     <p>Veinreach is a free game run by Tom Blackburn, an individual based in the United Kingdom. Tom is the "controller" of your information, which means Tom decides how it is used. Contact: <a href="mailto:asteroidthedino@gmail.com">asteroidthedino@gmail.com</a>.</p>
 
     <h2>Single-player: nothing leaves your browser</h2>
-    <p>Your characters, worlds and settings are saved in your own browser. They are never sent to us, and you don't need an account to play single-player.</p>
+    <p>Your characters, worlds and settings are saved in your own browser. They aren't sent to us, and you don't need an account to play single-player.</p>
+    <p>The one exception is a world you've put online. Its single-player copy stays in step with the online world: when you open it, it downloads what other players changed online, and the next time you play online it uploads what you changed on your own.</p>
 
     <h2>Online play: what we collect</h2>
     <p>Playing online needs an account. When you sign in and play online, we store:</p>
@@ -36,7 +37,7 @@
       <li><strong>Your Google sign-in:</strong> your Google account ID and email address, held by Firebase Authentication. We use these only to know it's you. Other players never see them.</li>
       <li><strong>Your username:</strong> the name you choose. Other players in worlds you join can see it.</li>
       <li><strong>Worlds:</strong> online worlds you own, and the changes you and others make in worlds you play in (blocks, chests, paintings and progress).</li>
-      <li><strong>Chat messages:</strong> what you type in chat, with your username. Messages are deleted automatically after 24 hours.</li>
+      <li><strong>Chat messages:</strong> what you type in chat, with your username. The game only shows chat live, as it's sent. Messages more than 24 hours old are deleted automatically the next time anyone opens that world.</li>
       <li><strong>Your character while you're online:</strong> its name, appearance, position, health, held item and actions, so other players can see you.</li>
       <li><strong>Membership:</strong> which worlds you have joined, and whether a world's owner has removed or banned you.</li>
       <li><strong>Technical data:</strong> like any website, Google processes your IP address and basic device and browser information to deliver the site and protect it from abuse.</li>
@@ -56,29 +57,29 @@
     <h2>How long we keep it</h2>
     <ul>
       <li><strong>Your account and username:</strong> until you delete your account.</li>
-      <li><strong>Chat messages:</strong> 24 hours.</li>
+      <li><strong>Chat messages:</strong> until they're more than 24 hours old and someone opens the world again, which deletes them. You can also delete them sooner by leaving the world or deleting your account.</li>
       <li><strong>Worlds:</strong> until their owner deletes them, or deletes their account.</li>
       <li><strong>Your membership of a world:</strong> until you leave it, you're removed, or you delete your account.</li>
-      <li><strong>Bans:</strong> if a world's owner bans you, the ban stays with that world even if you delete your account. Otherwise a banned player could simply make a new account and walk back in. The ban records your username and account ID only.</li>
+      <li><strong>Bans:</strong> if a world's owner bans you, the ban stays with that world even if you delete your account. Otherwise a banned player could simply make a new account and walk back in. The ban records only your username, account ID and when it happened.</li>
     </ul>
 
     <h2>Your rights</h2>
     <p>You have the right to access your information, correct it, have it deleted, restrict or object to how it's used, and receive a copy of it.</p>
     <ul>
-      <li><strong>To delete everything yourself:</strong> go to Multiplayer and choose <strong>Delete account</strong>. This removes your account, username, the worlds you own, and your chat and membership in worlds you joined.</li>
+      <li><strong>To delete everything yourself:</strong> go to Multiplayer and choose <strong>Delete account</strong>. This removes your account, username, the worlds you own, and your chat and membership in worlds you joined. If you joined worlds before 30 September 2026 from a different browser, email us and we'll remove you from those too.</li>
       <li><strong>To leave one world:</strong> choose <strong>Leave</strong> next to it under "Recently joined".</li>
       <li><strong>For anything else:</strong> email <a href="mailto:asteroidthedino@gmail.com">asteroidthedino@gmail.com</a>. We will reply within one month.</li>
     </ul>
     <p>If you're unhappy with how we've handled your information, you can complain to the Information Commissioner's Office (ICO) at <a href="https://ico.org.uk/make-a-complaint/">ico.org.uk</a>. We'd appreciate the chance to help first.</p>
 
     <h2>Children</h2>
-    <p>Online play is for people aged 13 and over. Anyone under 18 needs a parent or guardian's permission. Single-player has no age limit and collects nothing. If we learn that a child under 13 has an account, we will delete it. Parents can contact us at the email above.</p>
+    <p>Online play is for people aged 13 and over. Anyone under 18 needs a parent or guardian's permission. Single-player has no age limit and needs no account. If we learn that a child under 13 has an account, we will delete it. Parents can contact us at the email above.</p>
 
     <h2>Cookies and browser storage</h2>
     <p>We do not use cookies for tracking or advertising. The site stores these things in your browser, all strictly necessary for features you choose to use:</p>
     <ul>
-      <li>Your single-player characters and worlds, in IndexedDB.</li>
-      <li>Your settings and a list of online worlds you've joined recently, in localStorage.</li>
+      <li>Your single-player characters, worlds and settings, in IndexedDB.</li>
+      <li>A list of online worlds you've joined recently, and whether the crafting list is expanded, in localStorage.</li>
       <li>Your sign-in, if you play online, in the browser storage used by Firebase Authentication.</li>
     </ul>
     <p>Because these are needed for the game to work, the law doesn't require a consent banner. Clearing your browser's data for this site removes them, including your single-player saves, so export anything you want to keep first.</p>
