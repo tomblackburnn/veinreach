@@ -196,7 +196,7 @@ Creatures, bosses, projectiles, dropped items and liquid flow are still simulate
 
 ### Online worlds (Firebase) — the default
 
-Open **Multiplayer** from the main menu and sign in with Google, or with email and password. Email accounts verify with a link, and every account picks a unique username. Single-player never needs an account.
+Open **Multiplayer** from the main menu and sign in with Google. Every account picks a unique username, and that's all other players see. Single-player never needs an account.
 - **Create & Play** makes a new online world with a six-character code (for example `K7QM2X`). Share the code; members can play any time, even when you're offline. Each account can own up to 5 worlds.
 - **Join a friend** joins a world by its code. Your own and recently joined worlds are listed for one-click play.
 - **Put one of your worlds online** copies a saved single-player world into a new online world. Your local save is not changed.

@@ -68,6 +68,7 @@ Numbers come from `npx tsx scripts/content-stats.ts`.
 
 ## Recent changes
 
+- Online sign-in is **Google-only** for now. On the free plan, Firebase won't let the verification email link to our own page, and its default page breaks when some phone mail apps alter the link. The `/auth/action` page is built and deployed for when email comes back (see docs/DEPLOYMENT.md).
 - **Online accounts and world moderation.**
   - Online play now needs an account (Google, or email with verification) and a unique username. Single-player stays account-free.
   - World owners can kick, ban and unban players and lock their world (Esc → Online World).

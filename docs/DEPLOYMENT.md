@@ -1,6 +1,6 @@
 # Deployment and online play
 
-The game is a static site on **Firebase Hosting**. Online multiplayer uses **Firebase Realtime Database** with **Firebase Auth** accounts (Google, or email and password with a verified email), so no game server is needed. Single-player never asks for an account.
+The game is a static site on **Firebase Hosting**. Online multiplayer uses **Firebase Realtime Database** with **Firebase Auth** accounts (**Google sign-in only** for now; see [Account email links](#account-email-links)), so no game server is needed. Single-player never asks for an account.
 
 - Project: `veinreach-game` (see `.firebaserc`)
 - Site: https://veinreach-game.web.app. A custom domain can be added later; see [Going live](#going-live).
@@ -27,7 +27,13 @@ Still to do when you have a custom domain:
 
 Verification and password-reset emails link to the game's own page at `/auth/action` (`src/ui/AuthActionPage.ts`), not Firebase's default handler. Some mobile mail apps and link scanners damage the link (for example turning `&` into `&amp;`), and the default page then fails with *"The selected page mode is invalid"*. Our page reads damaged links. If the `mode` part is missing, it asks Firebase what the code is for (`checkActionCode`).
 
-This needs the template action URL set to `https://veinreach-game.web.app/auth/action` in the console (Authentication → Templates → pencil → *Customize action URL*). Firebase doesn't allow changing it through the API on this project.
+For our page to be used, the template action URL must be set to `https://veinreach-game.web.app/auth/action`. On this free-plan (Spark) project, Firebase refuses that change, both in the console and through the API (`EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED`). So **email/password sign-in is off for now** and online play is Google-only.
+
+To bring email accounts back:
+1. Upgrade the project to Blaze; normal usage stays within the free allowance.
+2. Set the action URL above.
+3. Turn Email/Password back on in Authentication → Sign-in method.
+4. Restore the email form in `src/ui/menus/AccountScreen.ts`. The account functions in `src/multiplayer/firebase/account.ts` are still there, and `/auth/action` is already deployed.
 
 `firebase.json` runs `npm run build` before each hosting deploy. Hashed JS and CSS bundles are cached for a year. Everything else (pages, including deep links like `/auth/action`, and the audio manifest) is sent with `no-cache`, so players get new versions on their next reload. The build uses `base: '/'` so deep links load `/assets/...` correctly.
 
@@ -41,7 +47,7 @@ npx tsx scripts/online-smoke.ts   # 40 scripted checks: accounts, membership, ki
 
 ## Accounts
 
-- Players sign in with Google, or with email and password. Email accounts must click the verification link before they can do anything online.
+- Players sign in with Google. Email/password sign-in is **switched off**, both in the game and in Firebase (`signIn.email.enabled = false`), for the reason under [Account email links](#account-email-links). The rules still only accept accounts with `email_verified`, which Google accounts always have.
 - Each account claims one unique username (3–16 characters: letters, numbers, `_`; case-insensitive). It can't be changed, and it's what others see in chat and on nameplates. The rules check that every chat message and avatar name matches its owner's username.
 - An account can own at most **5** online worlds at once; deleting one frees its slot.
 - **Delete account** (Multiplayer menu) removes the account's worlds, username and profile, then the login. Single-player saves are untouched.

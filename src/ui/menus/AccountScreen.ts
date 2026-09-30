@@ -6,8 +6,10 @@ import * as account from '../../multiplayer/firebase/account';
 import { multiplayerScreen } from './MultiplayerScreen';
 
 /**
- * Sign-in for online play (single-player never needs an account):
- * Google or email + password, a verified email, then a unique username.
+ * Sign-in for online play (single-player never needs an account): Google
+ * sign-in, then a unique username. Email/password is switched off for now
+ * because this project can't point verification emails at our own page
+ * (see docs/DEPLOYMENT.md, "Account email links").
  */
 export function accountScreen(host: MenuHost, c: CharacterSave, st: AccountState): HTMLElement {
   const typing = <T extends HTMLInputElement>(el: T): T => {
@@ -40,44 +42,19 @@ export function accountScreen(host: MenuHost, c: CharacterSave, st: AccountState
     h('div', { class: 'screen' }, h('div', { class: 'panel col menu-panel account-panel' }, h('h2', {}, title), ...body, msg));
 
   if (!st.signedIn) {
-    const email = typing(h('input', { type: 'email', placeholder: 'you@example.com', autocomplete: 'email', style: 'width:100%' }));
-    const pass = typing(h('input', { type: 'password', placeholder: 'Password (8+ characters)', autocomplete: 'current-password', style: 'width:100%' }));
-    pass.addEventListener('keydown', (e) => e.key === 'Enter' && (e.target as HTMLElement).closest('.panel')?.querySelector<HTMLButtonElement>('.sign-in')?.click());
     return panel('Sign in to play online',
       h('div', { class: 'dialog-text' }, 'Online worlds need an account, so world owners can see who is playing and remove or ban people. Single-player never needs one.'),
       h('button', { class: 'btn gold google-btn', onclick: run(() => account.signInWithGoogle()) }, 'Continue with Google'),
-      h('div', { class: 'account-or' }, 'or use your email'),
-      email,
-      pass,
-      h('div', { class: 'row' },
-        h('button', { class: 'btn good sign-in', onclick: run(() => account.signInWithEmail(email.value, pass.value)) }, 'Sign in'),
-        h('button', { class: 'btn', onclick: run(() => account.createEmailAccount(email.value, pass.value)) }, 'Create account'),
-        h('div', { class: 'spacer' }),
-        h('button', { class: 'btn small', onclick: run(async () => {
-          if (!email.value.trim()) throw new Error('Type your email above first.');
-          await account.resetPassword(email.value);
-          say('If that email has an account, a password reset link is on its way.', true);
-        }, 'stay') }, 'Forgot password?'),
-      ),
+      h('div', { class: 'hint' }, 'We only use your Google account to know it’s you. Other players see the username you choose next, never your name or email.'),
       h('div', { class: 'row' }, back, h('div', { class: 'spacer' }), selfHosted),
     );
   }
 
   if (!st.verified) {
-    return panel('Verify your email',
-      h('div', { class: 'dialog-text' }, `We sent a link to ${st.email ?? 'your email'}. Click it, then press Continue. (Check your spam folder if it isn’t there.)`),
-      h('div', { class: 'row' },
-        h('button', { class: 'btn good', onclick: run(async () => {
-          if (!(await account.refreshVerification())) throw new Error('Not verified yet — click the link in the email first.');
-        }) }, 'Continue'),
-        h('button', { class: 'btn', onclick: run(async () => {
-          await account.resendVerification();
-          say('Sent another link.', true);
-        }, 'stay') }, 'Resend email'),
-        h('div', { class: 'spacer' }),
-        h('button', { class: 'btn small', onclick: run(() => account.signOut()) }, 'Use a different account'),
-      ),
-      h('div', { class: 'row' }, back),
+    // Email sign-up is switched off (Google only); older unverified email accounts can't play online.
+    return panel('Please use Google',
+      h('div', { class: 'dialog-text' }, `Online play now uses Google sign-in only, and ${st.email ?? 'this email account'} was never verified. Sign out, then continue with Google.`),
+      h('div', { class: 'row' }, h('button', { class: 'btn gold', onclick: run(() => account.signOut()) }, 'Sign out'), h('div', { class: 'spacer' }), back),
     );
   }
 

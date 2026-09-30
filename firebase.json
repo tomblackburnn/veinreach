@@ -41,7 +41,6 @@
   },
   "auth": {
     "providers": {
-      "emailPassword": true,
       "googleSignIn": {
         "oAuthBrandDisplayName": "Veinreach",
         "supportEmail": "asteroidthedino@gmail.com"
