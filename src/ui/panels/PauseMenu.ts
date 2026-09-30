@@ -24,14 +24,20 @@ export class PauseMenu {
     this.isOpen = true;
     this.s.paused = true;
     this.s.host.input.releaseMouse();
-    this.showMain();
     this.el.style.display = '';
+    this.showMain();
   }
 
   close(): void {
     this.isOpen = false;
     this.s.paused = false;
+    if (this.el.contains(document.activeElement)) (document.activeElement as HTMLElement).blur();
     this.el.style.display = 'none';
+  }
+
+  /** Keyboard users land on the first control of each view (Escape still closes the menu). */
+  private focusFirst(): void {
+    (this.el.querySelector('button, input, select, a[href]') as HTMLElement | null)?.focus();
   }
 
   private showMain(): void {
@@ -47,6 +53,7 @@ export class PauseMenu {
         h('button', { class: 'btn danger', onclick: () => { this.close(); void this.s.exit(); } }, 'Save & Quit to Menu'),
       ),
     );
+    this.focusFirst();
   }
 
   /** The Firebase room behind this session, if any. */
@@ -103,15 +110,18 @@ export class PauseMenu {
     room.onRoster = (r) => this.isOpen && render(r);
     render(room.roster());
     this.el.replaceChildren(h('div', { class: 'panel col menu-panel' }, h('h2', {}, 'Online World'), body, h('button', { class: 'btn', onclick: () => { room.onRoster = null; this.showMain(); } }, 'Back')));
+    this.focusFirst();
   }
 
   private showSettings(): void {
     const panel = buildSettingsPanel(this.s.host, () => this.showMain());
     this.el.replaceChildren(panel);
+    this.focusFirst();
   }
 
   private showControls(): void {
     this.el.replaceChildren(h('div', { class: 'panel col menu-panel' }, h('h2', {}, 'Controls'), controlsHelp(this.s.host.input), h('button', { class: 'btn', onclick: () => this.showMain() }, 'Back')));
+    this.focusFirst();
   }
 
   dispose(): void {

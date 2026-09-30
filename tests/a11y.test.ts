@@ -74,3 +74,19 @@ describe('labels', () => {
     expect(html).toMatch(/<meta name="description" content="[^"]{20,}"/);
   });
 });
+
+import { PauseMenu } from '../src/ui/panels/PauseMenu';
+import type { GameSession } from '../src/core/GameSession';
+
+describe('pause menu', () => {
+  it('takes keyboard focus when opened, so Tab and Enter work in it', () => {
+    const root = document.createElement('div');
+    document.body.append(root);
+    const s = { host: { ui: { root }, input: { releaseMouse() {} } }, online: false, net: null, paused: false } as unknown as GameSession;
+    const menu = new PauseMenu(s);
+    menu.open();
+    expect(document.activeElement?.textContent).toBe('Resume');
+    menu.close();
+    expect(root.contains(document.activeElement)).toBe(false);
+  });
+});
