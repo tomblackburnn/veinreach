@@ -2,7 +2,7 @@
   "name": "veinreach",
   "version": "0.1.0",
   "private": true,
-  "description": "Veinreach \u2014 a browser-based 2D sandbox survival adventure.",
+  "description": "Veinreach — a browser-based 2D sandbox survival adventure.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,6 +17,8 @@
     "deploy": "firebase deploy --only hosting,database,auth"
   },
   "devDependencies": {
+    "@fontsource/silkscreen": "^5.3.0",
+    "@fontsource/vt323": "^5.3.0",
     "@types/node": "^26.6.3",
     "@types/ws": "^8.18.2",
     "firebase-tools": "^15.32.0",
